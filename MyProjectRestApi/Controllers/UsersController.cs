@@ -26,7 +26,7 @@ namespace MyProjectRestApi.Controllers
 
         // GET: api/Users/5
         [ResponseType(typeof(ApplicationUser))]
-        public async Task<IHttpActionResult> GetUser(string id)
+        public async Task<IHttpActionResult> GetUserById(string id)
         {
             ApplicationUser applicationUser = db.Users.Find(id);
             if (applicationUser == null)
