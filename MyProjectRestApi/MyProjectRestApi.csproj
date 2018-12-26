@@ -252,8 +252,8 @@
     <Compile Include="Controllers\GroupsController.cs" />
     <Compile Include="Controllers\InvitationsController.cs" />
     <Compile Include="Controllers\PostsController.cs" />
-    <Compile Include="Controllers\Groups1Controller.cs" />
     <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\UsersController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="DAL\Initalizer.cs" />
     <Compile Include="Global.asax.cs">
@@ -340,7 +340,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
-    <Folder Include="Images\" />
+    <Folder Include="Image\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fonts\glyphicons-halflings-regular.woff" />

@@ -15,5 +15,7 @@ namespace MyProjectRestApi.Models.DTO
         public bool IsPostOwner { get; set; }
         public string ImagePath { get; set; }
         public string ImageName { get; set; }
+        public string Base64StringImage { get; set; }
+        public int PostCount { get; set; }
     }
 }

@@ -15,6 +15,7 @@ using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OAuth;
 using MyProjectRestApi.Models;
+using MyProjectRestApi.Models.Entity_Types;
 using MyProjectRestApi.Providers;
 using MyProjectRestApi.Results;
 
@@ -27,6 +28,7 @@ namespace MyProjectRestApi.Controllers
     {
         private const string LocalLoginProvider = "Local";
         private ApplicationUserManager _userManager;
+        private ApplicationDbContext _dbContext = new ApplicationDbContext();
 
         public AccountController()
         {
@@ -331,14 +333,26 @@ namespace MyProjectRestApi.Controllers
             }
 
             var user = new ApplicationUser() { UserName = model.FirstName + " " + model.LastName, Email = model.Email };
-
-            IdentityResult result = await UserManager.CreateAsync(user, model.Password);
+            IdentityResult result = null;
+            try
+            {
+                 result = await UserManager.CreateAsync(user, model.Password);
+            }
+            catch (Exception ex) { }
+            
 
             if (!result.Succeeded)
             {
                 return GetErrorResult(result);
             }
 
+            List<Group> listGroup = new List<Group>();
+            Group homeGroup = await _dbContext.Groups.FindAsync(1);
+            listGroup.Add(homeGroup);
+            ApplicationUser newMember = _dbContext.Users.Find(user.Id);
+            newMember.Groups = listGroup;
+
+            await _dbContext.SaveChangesAsync();
 
             return Ok();
         }

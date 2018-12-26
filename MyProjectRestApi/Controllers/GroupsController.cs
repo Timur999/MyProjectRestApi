@@ -17,7 +17,7 @@ using System.Security.Claims;
 
 namespace MyProjectRestApi.Controllers
 {
-    [Authorize]
+    //[Authorize]
     public class GroupsController : ApiController
     {
         private ApplicationDbContext db = new ApplicationDbContext();
@@ -190,9 +190,7 @@ namespace MyProjectRestApi.Controllers
                 .Where(m => m.Id == userId)
                 .SelectMany(m => m.Groups)
                 .Select(m => new GroupDTO() { Id = m.Id, GroupsName = m.GroupsName });
-        }
-
-            
+        } 
 
         // GET: api/Groups/Users?userId=iasjdoajdiasdlji3o2j4
         [Route("api/fivegroups")]

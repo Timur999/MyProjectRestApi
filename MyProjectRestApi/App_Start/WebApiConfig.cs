@@ -41,16 +41,6 @@ namespace MyProjectRestApi
          //    defaults: new { userId = RouteParameter.Optional }
          //);
 
-
-            ODataConventionModelBuilder builder = new ODataConventionModelBuilder();
-            builder.EntitySet<Group>("Groups");
-            builder.EntitySet<GroupDTO>("GroupDTO");
-            builder.EntitySet<Blog>("Blogs");
-            builder.EntitySet<ApplicationUser>("Users");
-            builder.EntitySet<ApplicationUserDTO>("UsersDTO");
-            builder.EntitySet<GroupPost>("Posts");
-            builder.EntitySet<PostDTO>("PostDTO");
-            config.Routes.MapODataServiceRoute("odata", "odata", builder.GetEdmModel());
         }
     }
 }
