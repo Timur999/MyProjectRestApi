@@ -12,18 +12,19 @@ namespace MyProjectRestApi.Models.Entity_Types
         public int MessageId { get; set; }
         public virtual ApplicationUser ApplicationUser { get; set; }
         public virtual ChatRoom ChatRoom { get; set; }
+        [StringLength(250)]
         public string Text { get; set; }
         public DateTime DateSendMessage { get; set; }
-        public EnumMessageState MessageState { get; set; }
-        public enum EnumMessageState
-        {
-            Sent,
-            Delivered
-        }
-        public ChatMessage()
-        {
-            MessageState = EnumMessageState.Sent;
-        }
+        //public EnumMessageState MessageState { get; set; }
+        //public enum EnumMessageState
+        //{
+        //    Sent,
+        //    Delivered
+        //}
+        //public ChatMessage()
+        //{
+        //    MessageState = EnumMessageState.Sent;
+        //}
     
     }
 }

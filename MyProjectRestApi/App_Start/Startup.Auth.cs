@@ -10,6 +10,7 @@ using Microsoft.Owin.Security.OAuth;
 using Owin;
 using MyProjectRestApi.Providers;
 using MyProjectRestApi.Models;
+using Microsoft.AspNet.SignalR;
 
 namespace MyProjectRestApi
 {
@@ -30,8 +31,6 @@ namespace MyProjectRestApi
             // oraz na tymczasowe przechowywanie w pliku cookie informacji o użytkowniku logującym się przy użyciu dostawcy logowania innego producenta
             app.UseCookieAuthentication(new CookieAuthenticationOptions());
             app.UseExternalSignInCookie(DefaultAuthenticationTypes.ExternalCookie);
-
-            app.UseCors(Microsoft.Owin.Cors.CorsOptions.AllowAll);
 
             // Skonfiguruj aplikację dla przepływu OAuth
             PublicClientId = "self";
@@ -66,6 +65,31 @@ namespace MyProjectRestApi
             //    ClientId = "",
             //    ClientSecret = ""
             //});
+        }
+
+        public void ConfigureSignalR(IAppBuilder app)
+        {
+            //app.MapSignalR();
+
+
+            HubConfiguration hubConfiguration = new HubConfiguration() { EnableDetailedErrors = true, EnableJSONP = true };
+            //app.MapHubs("/chat", hubConfiguration);
+
+            app.Map("/signalr", map =>
+            {
+                map.UseCors(Microsoft.Owin.Cors.CorsOptions.AllowAll);
+                map.RunSignalR(hubConfiguration);
+            });
+
+            
+
+
+
+
+
+
+
+
         }
     }
 }

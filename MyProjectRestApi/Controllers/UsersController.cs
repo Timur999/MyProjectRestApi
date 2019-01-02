@@ -6,6 +6,7 @@ using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.Http.Description;
@@ -24,6 +25,14 @@ namespace MyProjectRestApi.Controllers
             return db.Users;
         }
 
+        // GET: api/GetUserId
+        [Route("api/GetUserId")]
+        public async Task<IHttpActionResult> GetUserId()
+        {
+            string currentUserId = GetCurrentUserId();
+            return Ok(currentUserId);
+        }
+
         // GET: api/Users/5
         [ResponseType(typeof(ApplicationUser))]
         public async Task<IHttpActionResult> GetUserById(string id)
@@ -37,7 +46,7 @@ namespace MyProjectRestApi.Controllers
             return Ok(applicationUser);
         }
 
-        // GET: api/Users/5
+        // GET: api/getshortlistusers
         [Route("api/getshortlistusers")]
         [ResponseType(typeof(List<ApplicationUserDTO>))]
         public async Task<IHttpActionResult> GetShortListUsers()
@@ -160,6 +169,16 @@ namespace MyProjectRestApi.Controllers
         private bool ApplicationUserExists(string id)
         {
             return db.Users.Count(e => e.Id == id) > 0;
+        }
+
+        private string GetCurrentUserId()
+        {
+            var identity = User.Identity as ClaimsIdentity;
+            Claim identityClaim = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+
+            var user = db.Users.FirstOrDefault(u => u.Id == identityClaim.Value);
+
+            return user.Id;
         }
     }
 }

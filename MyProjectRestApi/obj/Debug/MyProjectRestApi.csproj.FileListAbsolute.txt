@@ -186,3 +186,9 @@ D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.Cors.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.Cors.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Owin.Cors.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Owin.Cors.xml
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.Core.dll
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.SystemWeb.dll
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.Core.pdb
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.Core.xml
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.SystemWeb.pdb
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.SystemWeb.xml

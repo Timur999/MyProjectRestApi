@@ -194,7 +194,8 @@ namespace MyProjectRestApi.Controllers
 
         // GET: api/Groups/Users?userId=iasjdoajdiasdlji3o2j4
         [Route("api/fivegroups")]
-        public IQueryable<GroupDTO> GetFiveGroupsBelongToUser()
+        [ResponseType(typeof(GroupDTO))]
+        public async Task<IHttpActionResult> GetFiveGroupsBelongToUser()
         {
             var identity = User.Identity as ClaimsIdentity;
             Claim identityClaim = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
@@ -203,15 +204,18 @@ namespace MyProjectRestApi.Controllers
 
             if (user == null)
             {
-                var msg = new HttpResponseMessage(HttpStatusCode.Unauthorized) { ReasonPhrase = "Oops!!!" };
-                throw new HttpResponseException(msg);
+                return Content(HttpStatusCode.Forbidden, "An error occurred, please try again or contact the administrator.");
+                //var msg = new HttpResponseMessage(HttpStatusCode.Unauthorized) { ReasonPhrase = "Oops!!!" };
+                //throw new HttpResponseException(msg);
             }
 
-            return db.Users
+            List<GroupDTO> shortListOfGroup = await db.Users
                 .Where(m => m.Id == user.Id)
                 .SelectMany(m => m.Groups)
                 .Select(m => new GroupDTO() { Id = m.Id, GroupsName = m.GroupsName })
-                .OrderBy(g => g.GroupsName).Take(5);
+                .OrderBy(g => g.GroupsName).Take(5).ToListAsync();
+
+            return Ok(shortListOfGroup);
         }
 
 
