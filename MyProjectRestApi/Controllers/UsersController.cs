@@ -51,7 +51,8 @@ namespace MyProjectRestApi.Controllers
         [ResponseType(typeof(List<ApplicationUserDTO>))]
         public async Task<IHttpActionResult> GetShortListUsers()
         {
-            List<ApplicationUserDTO> applicationUserList = await db.Users.
+            string currentUserId = GetCurrentUserId();
+            List<ApplicationUserDTO> applicationUserList = await db.Users.Where(m => m.Id != currentUserId).
                 Select(m => new ApplicationUserDTO() { Id = m.Id, UserName = m.UserName }).Take(10).ToListAsync();
             if (applicationUserList == null || applicationUserList.Count < 1)
             {
@@ -65,7 +66,9 @@ namespace MyProjectRestApi.Controllers
         [ResponseType(typeof(ApplicationUser))]
         public async Task<IHttpActionResult> GetUserByName(string userName)
         {
-            List<ApplicationUserDTO> applicationUserList = await db.Users.Where(m => m.UserName.Contains(userName)).
+            string currentUserId = GetCurrentUserId();
+            List<ApplicationUserDTO> applicationUserList = await db.Users.Where(m => m.UserName.Contains(userName)
+            && m.Id != currentUserId).
                 Select(m => new ApplicationUserDTO() { Id = m.Id, UserName = m.UserName }).
                 Take(10).ToListAsync();
             if (applicationUserList == null || applicationUserList.Count < 1)

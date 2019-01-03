@@ -19,5 +19,11 @@ namespace MyProjectRestApi.Models.Entity_Types
         {
             this.Users = userList;
         }
+        public ChatRoom(List<ApplicationUser> userList, string chatAdmin, string chatName)
+        {
+            this.Users = userList;
+            this.ChatRoomAdminId = chatAdmin;
+            this.ChatRoomName = chatName;
+        }
     }
 }

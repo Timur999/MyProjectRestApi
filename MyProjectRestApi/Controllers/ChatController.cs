@@ -88,9 +88,37 @@ namespace MyProjectRestApi.Controllers
 
         }
 
+        [ResponseType(typeof(ChatDTO[]))]
+        [Route("api/GetChatsCreatedByUser")]
+        public async Task<IHttpActionResult> GetChatsCreatedByUser()
+        {
+            string currentUserId = GetCurrentUserId();
+
+            List<ChatDTO> chatDtoList = await db.ChatRooms.Where(chat => chat.ChatRoomAdminId == currentUserId)
+                .Select(chat => new ChatDTO() {
+                    Id = chat.ChatRoomId,
+                    ChatAdminId = chat.ChatRoomAdminId,
+                    ChatName = chat.ChatRoomName }).ToListAsync();
+
+            return Ok(chatDtoList);
+        }
+
         public IHttpActionResult PutChatById(int id)
         {
             return Ok();
+        }
+
+        public IHttpActionResult PostChat(ChatDTO chatDto)
+        {
+            string currentUserId = GetCurrentUserId();
+            chatDto.UsersInChat.Add(currentUserId);
+            int chatId = CreateChat(chatDto.UsersInChat, currentUserId, chatDto.ChatName);
+            if (chatId == 0)
+            {
+                return BadRequest("User or chat is not exist");
+            }
+
+            return Ok(chatId);
         }
 
         [Route("api/PostMessage")]
@@ -123,20 +151,25 @@ namespace MyProjectRestApi.Controllers
         }
 
     
-        private int CreateChat(List<string> chatMembersId)
+        private int CreateChat(List<string> chatMembersId, string chatAdmin = "", string chatName = "")
         {
             List<ApplicationUser> applicationUsersList = new List<ApplicationUser>();
             for (int i = 0; i < chatMembersId.Count; i++)
             {
                 applicationUsersList.Add(db.Users.Find(chatMembersId[i]));
                 if (applicationUsersList[i] == null)
-                {
-                    //return Content(HttpStatusCode.NotFound, chatMembersId[i] + " is not exist");
                     return 0;
-                }
             }
-
-            ChatRoom chat = new ChatRoom(applicationUsersList);
+            ChatRoom chat = null;
+            if (!string.IsNullOrEmpty(chatAdmin))
+            {
+                chat = new ChatRoom(applicationUsersList, chatAdmin, chatName);
+            }
+            else
+            {
+                chat = new ChatRoom(applicationUsersList);
+            }
+             
             db.ChatRooms.Add(chat);
             try
             {
