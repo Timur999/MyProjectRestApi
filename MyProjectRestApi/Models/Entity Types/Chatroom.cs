@@ -10,6 +10,7 @@ namespace MyProjectRestApi.Models.Entity_Types
         public int ChatRoomId { get; set; }
         public string ChatRoomName { get; set; }
         public string ChatRoomAdminId { get; set; }
+        public string UsersIdBelongToGroupChat { get; set; }
         public virtual ICollection<ApplicationUser> Users { get; set; }
         public virtual ICollection<ChatMessage> Messages { get; set; }
 
@@ -24,6 +25,7 @@ namespace MyProjectRestApi.Models.Entity_Types
             this.Users = userList;
             this.ChatRoomAdminId = chatAdmin;
             this.ChatRoomName = chatName;
+            userList.ForEach(user => this.UsersIdBelongToGroupChat += (user.Id + ' '));      
         }
     }
 }

@@ -284,6 +284,8 @@ namespace MyProjectRestApi.Controllers
                         ImageName = image.ImageName,
                         IsPostOwner = true
                     };
+                    postDTO.Base64StringImage = !String.IsNullOrEmpty(postDTO.ImagePath)
+                        ? getImageRelatedWithPost(postDTO.ImagePath) : null;
                 }
                 else
                 {
@@ -302,15 +304,15 @@ namespace MyProjectRestApi.Controllers
                 {
                     con.GroupPosts.Add(groupPost);
                     await db.SaveChangesAsync();
+                    postDTO.Id = groupPost.Id;
                 }
                 catch (Exception ex)
                 {
                     return Content(HttpStatusCode.InternalServerError, ex.Message);
                 }
 
-                //return CreatedAtRoute("DefaultApi", new { id = postDTO.Id }, postDTO);
-                //PostDTO result = await SaveImageToDatabase(image, postedText, postedBlogId);
-                return StatusCode(HttpStatusCode.NoContent);
+
+                return Ok(postDTO);
             }
         }
 
