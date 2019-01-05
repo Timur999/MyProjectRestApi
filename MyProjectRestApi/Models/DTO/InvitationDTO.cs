@@ -11,6 +11,7 @@ namespace MyProjectRestApi.Models.DTO
         public int GroupId { get; set; }
         public string GroupsName{ get; set; }
         public string UserIdSender { get; set; }        //User id who send you invitation to Friends group
+        public string UserNameSender { get; set; }
         public string UserIdReceiver { get; set; }
         public bool IsAccepted { get; set; }
     }

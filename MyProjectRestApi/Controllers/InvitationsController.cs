@@ -34,6 +34,7 @@ namespace MyProjectRestApi.Controllers
         }
 
         // GET: api/Invitations?userId=b3913d15-f95f-412f-b395-a11d281df016(this is userid)
+        [Route("api/GetALlInvitations")]
         public IQueryable<InvitationDTO> GetInvitationsByUserId()
         {
             string currentUserId = GetCurrentUserId();
@@ -41,8 +42,11 @@ namespace MyProjectRestApi.Controllers
                 .Select(invite => new InvitationDTO()
                 {
                     Id = invite.Id,
+                    GroupId = invite.GroupId,
+                    GroupsName = db.Groups.Where(group => group.Id == invite.GroupId).FirstOrDefault().GroupsName,
                     UserIdSender = invite.UserIdSender,
-                    GroupsName = db.Groups.Where(group => group.Id == invite.GroupId).FirstOrDefault().GroupsName
+                    UserNameSender = db.Users.Where(user => user.Id == invite.UserIdSender).FirstOrDefault().UserName,
+                    IsAccepted = invite.IsAccepted
                 });
 
         }
@@ -69,21 +73,30 @@ namespace MyProjectRestApi.Controllers
             {
                 return BadRequest(ModelState);
             }
+            string currentUserId = GetCurrentUserId();
+            if (!(IsUserHasThisInvite(invitationDto.GroupId, currentUserId)))
+                return Content(HttpStatusCode.Forbidden, "You have not permission");
 
-            //TODO: Important compare invitationDto.UserIdReceiver with currentUserId
-            //TODO: Get all current User invite and check is this invitation belong to him, and check every invitation properties are corect with receive invitationDTO
             Invitation invite = await db.Invitations.FindAsync(id);
-            if (invite == null|| id != invitationDto.Id)
+            if (invite == null || id != invitationDto.Id)
             {
                 return NotFound();
-                //return BadRequest();
             }
 
             if (invitationDto.IsAccepted)
             {
-                ApplicationUser userReceiverInvitaton = db.Users.Find(invitationDto.UserIdReceiver);
+                ApplicationUser userReceiverInvitaton = db.Users.Find(currentUserId);
                 Group group = await db.Groups.FindAsync(invitationDto.GroupId);
                 group.Users = new List<ApplicationUser>() { userReceiverInvitaton };
+                try
+                {
+                    await db.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    return Content(HttpStatusCode.InternalServerError, ex.Message);
+                }
+
                 db.Invitations.Remove(invite);
                 try
                 {
@@ -93,13 +106,12 @@ namespace MyProjectRestApi.Controllers
                 {
                     if (!InvitationExists(id))
                     {
-                        return NotFound();
+                        return Content(HttpStatusCode.Forbidden, "Invitation has already exist");
                     }
                     else
                     {
-                        throw;
+                        return Content(HttpStatusCode.InternalServerError, "Unknow error");
                     }
-                    // return InternalServerError();
                 }
             }
             else
@@ -121,7 +133,7 @@ namespace MyProjectRestApi.Controllers
             }
 
             List<Invitation> invitations = new List<Invitation>();
-            foreach(InvitationDTO invitationDto in invitationsDTO)
+            foreach (InvitationDTO invitationDto in invitationsDTO)
             {
                 ApplicationUser userReceiverInvitaton = db.Users.Find(invitationDto.UserIdReceiver);
                 if (userReceiverInvitaton == null)
@@ -142,13 +154,14 @@ namespace MyProjectRestApi.Controllers
 
                     if (hasInvitationAlreadyExist != null || hasUserAlreadyExistInGroup != 0)
                         return Content(HttpStatusCode.PreconditionFailed, "User already exist in the Group");
-                    
-                }catch(Exception ex)
+
+                }
+                catch (Exception ex)
                 {
                     return Content(HttpStatusCode.InternalServerError, ex.Message);
                 }
-            
 
+                invitationDto.UserIdSender = GetCurrentUserId();
                 Invitation inviteToGroup = new Invitation(invitationDto, userReceiverInvitaton);
                 invitations.Add(inviteToGroup);
             }
@@ -160,7 +173,7 @@ namespace MyProjectRestApi.Controllers
             //I can not return any value because Invitation is send to frends and I have not to get any invitation back
             return StatusCode(HttpStatusCode.NoContent);
             //return Ok();
-           // return CreatedAtRoute("DefaultApi", new { id = invitation.Id }, new InvitationDTO() { GroupId = invitation.GroupId, Id = invitation.Id });
+            // return CreatedAtRoute("DefaultApi", new { id = invitation.Id }, new InvitationDTO() { GroupId = invitation.GroupId, Id = invitation.Id });
         }
 
         // DELETE: api/Invitations/5

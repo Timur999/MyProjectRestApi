@@ -254,8 +254,8 @@ namespace MyProjectRestApi.Controllers
                 .Where(m => m.Id == id)
                 .SelectMany(m => m.Users)
                 .Select(m => new ApplicationUserDTO() {
-                    UserName = m.UserName ,
-                    Role = groupAdminId == currentUserId ? "Admin" : "User"}).ToListAsync();
+                    UserName = m.UserName,
+                    Role = groupAdminId == m.Id ? "Admin" : "User"}).ToListAsync();
 
             return Ok(usersDto);
         }
