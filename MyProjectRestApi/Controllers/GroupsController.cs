@@ -21,7 +21,7 @@ namespace MyProjectRestApi.Controllers
     public class GroupsController : ApiController
     {
         private ApplicationDbContext db = new ApplicationDbContext();
-     
+
         // GET: api/Groups
         public IQueryable<GroupDTO> GetGroups()
         {
@@ -38,6 +38,11 @@ namespace MyProjectRestApi.Controllers
         [ResponseType(typeof(GroupDTO))]
         public async Task<IHttpActionResult> GetGroup(int id)
         {
+            string currentUser = GetCurrentUserId();
+            if (!IsUserBelongToGroup(id, currentUser))
+            {
+                return Content(HttpStatusCode.Forbidden, "You have not permission");
+            }
             GroupDTO group = await db.Groups
                 .Where(g => g.Id == id)
                 .Select(g => new GroupDTO()
@@ -45,7 +50,8 @@ namespace MyProjectRestApi.Controllers
                     Id = g.Id,
                     GroupsName = g.GroupsName,
                     AdminGroupId = g.AdminGroupId,
-                    DateOfCreatedGroup = g.DateOfCreatedGroup
+                    DateOfCreatedGroup = g.DateOfCreatedGroup,
+                    IsAdmin = g.AdminGroupId == currentUser ? true : false
                 }).FirstOrDefaultAsync();
 
             if (group == null)
@@ -54,6 +60,57 @@ namespace MyProjectRestApi.Controllers
             }
 
             return Ok(group);
+        }
+
+
+        [ResponseType(typeof(void))]
+        [Route("api/LeaveGroup/{id:int}")]
+        public async Task<IHttpActionResult> PutLeaveGroup(int id)
+        {
+            string currentUserId = GetCurrentUserId();
+
+            if (!IsUserBelongToGroup(id, currentUserId))
+                return Content(HttpStatusCode.Forbidden, "You have not permission");
+
+            Group group = await db.Groups.FindAsync(id);
+
+            if (group == null)
+                return Content(HttpStatusCode.NotFound, "Group not exist");
+
+            if (group.AdminGroupId == currentUserId)
+            {
+                List<GroupPost> listPost = db.Blogs.Where(m => m.BLogId == id).SelectMany(m => m.GroupPost).ToList();
+                listPost.ForEach(p => db.GroupPosts.Remove(p));
+                Blog blog = db.Blogs.Find(id);
+                db.Blogs.Remove(blog);
+                db.Groups.Remove(group);
+                try
+                {
+                    await db.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    return InternalServerError(ex);
+                }
+
+                return Ok();
+            }
+            else
+            {
+                ApplicationUser user = db.Users.Find(currentUserId);
+                group.Users.Remove(user);
+
+                try
+                {
+                    await db.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    return InternalServerError(ex);
+                }
+                return Ok();
+            }
+
         }
 
         // PUT: api/Groups/5
@@ -131,17 +188,20 @@ namespace MyProjectRestApi.Controllers
         [ResponseType(typeof(GroupDTO))]
         public async Task<IHttpActionResult> PostGroup(GroupDTO groupDto)
         {
+            string currentUserId = GetCurrentUserId();
+            ApplicationUser user = db.Users.Find(currentUserId);
             if (!ModelState.IsValid)
             {
                 var errors = ModelState.Values.SelectMany(v => v.Errors);
                 return BadRequest(ModelState);
             }
-            Group group = new Group(groupDto.GroupsName);
-            group.CreateBlog();
+            List<ApplicationUser> users = new List<ApplicationUser>() { user };
+            Group group = new Group(groupDto.GroupsName, users);
             db.Groups.Add(group);
             await db.SaveChangesAsync();
 
-            return CreatedAtRoute("DefaultApi", new { id = group.Id }, new GroupDTO() { Id = group.Id, GroupsName = group.GroupsName });
+            return CreatedAtRoute("DefaultApi", new { id = group.Id },
+                new GroupDTO() { Id = group.Id, GroupsName = group.GroupsName, AdminGroupId = group.AdminGroupId, IsAdmin = true });
         }
 
         // DELETE: api/Groups/5
@@ -149,8 +209,13 @@ namespace MyProjectRestApi.Controllers
         [ResponseType(typeof(Group))]
         public async Task<IHttpActionResult> DeleteGroup(int id)
         {
+            string currentUserId = GetCurrentUserId();
             Blog blog = db.Blogs.Find(id);
             Group group = await db.Groups.FindAsync(id);
+
+            if (group.AdminGroupId == currentUserId)
+                return Content(HttpStatusCode.Forbidden, "You have not permission");
+
             if (blog == null || group == null)
             {
                 return NotFound();
@@ -175,12 +240,24 @@ namespace MyProjectRestApi.Controllers
 
         // GET: api/Groups/5/Users
         [Route("api/Groups/{id:int}/Users")]
-        public IQueryable<ApplicationUserDTO> GetUsersBelongToGroup(int id)
+        [ResponseType(typeof(List<ApplicationUserDTO>))]
+        public async Task<IHttpActionResult> GetUsersBelongToGroup(int id)
         {
-            return db.Groups
+            string currentUserId = GetCurrentUserId();
+
+            if (!IsUserBelongToGroup(id, currentUserId))
+                return Content(HttpStatusCode.Forbidden, "You have not permission");
+
+            string groupAdminId = db.Groups.Where(g => g.Id == id).Select(m => m.AdminGroupId).FirstOrDefault();
+
+            List<ApplicationUserDTO> usersDto = await db.Groups
                 .Where(m => m.Id == id)
                 .SelectMany(m => m.Users)
-                .Select(m => new ApplicationUserDTO() { UserName = m.UserName });
+                .Select(m => new ApplicationUserDTO() {
+                    UserName = m.UserName ,
+                    Role = groupAdminId == currentUserId ? "Admin" : "User"}).ToListAsync();
+
+            return Ok(usersDto);
         }
 
         // GET: api/Groups/Users?userId=iasjdoajdiasdlji3o2j4
@@ -190,7 +267,7 @@ namespace MyProjectRestApi.Controllers
                 .Where(m => m.Id == userId)
                 .SelectMany(m => m.Groups)
                 .Select(m => new GroupDTO() { Id = m.Id, GroupsName = m.GroupsName });
-        } 
+        }
 
         // GET: api/Groups/Users?userId=iasjdoajdiasdlji3o2j4
         [Route("api/fivegroups")]
@@ -231,6 +308,28 @@ namespace MyProjectRestApi.Controllers
         private bool GroupExists(int id)
         {
             return db.Groups.Count(e => e.Id == id) > 0;
+        }
+
+        private bool IsUserBelongToGroup(int groupId, string userId)
+        {
+            int hasUserAlreadyExistInGroup = (from g in db.Groups
+                                              where (g.Id == groupId)
+                                              let userInGroup = g.Users.Where(u => u.Id == userId)
+                                              where userInGroup.Any()
+                                              select userInGroup.Count()).FirstOrDefault();
+
+            return hasUserAlreadyExistInGroup > 0 ? true : false;
+
+        }
+
+        private string GetCurrentUserId()
+        {
+            var identity = User.Identity as ClaimsIdentity;
+            Claim identityClaim = identity.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+
+            var user = db.Users.FirstOrDefault(u => u.Id == identityClaim.Value);
+
+            return user.Id;
         }
     }
 }

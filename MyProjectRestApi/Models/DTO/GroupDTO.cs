@@ -10,6 +10,7 @@ namespace MyProjectRestApi.Models.DTO
         public int Id { get; set; }
         public string GroupsName { get; set; }
         public string AdminGroupId { get; set; }
+        public bool IsAdmin { get; set; }
         public DateTime DateOfCreatedGroup { get; set; }
     }
 

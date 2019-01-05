@@ -30,6 +30,16 @@ namespace MyProjectRestApi.Models.Entity_Types
             this.Blog = new Blog(groupsName);
         }
 
+        public Group(string groupsName, List<ApplicationUser> users)
+        {
+            this.GroupsName = groupsName;
+            this.DateOfCreatedGroup = DateTime.Now;
+            this.Blog = new Blog(groupsName);
+            this.Users = users;
+            //users list has always one element 
+            this.AdminGroupId = users[0].Id;
+        }
+
         public void CreateBlog()
         {
             this.Blog = new Blog(this.GroupsName);

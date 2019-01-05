@@ -51,23 +51,25 @@ namespace MyProjectRestApi.DAL
             Blog blog = new Blog() { BLogsName = "PiwoBlog", GroupPost = listGroupPosts };
 
 
-            List<Invitation> listInvitation = new List<Invitation>()
-            {
-                new Invitation(){GroupId = 1, UserIdSender = "currentUser"},
-                new Invitation(){GroupId = 2, UserIdSender = "currentUser"},
-            };
+            //List<Invitation> listInvitation = new List<Invitation>()
+            //{
+            //    new Invitation(){GroupId = 1, UserIdSender = "currentUser"},
+            //    new Invitation(){GroupId = 2, UserIdSender = "currentUser"},
+            //};
 
-            List<Invitation> listInvitation2 = new List<Invitation>()
-            {
-                new Invitation(){GroupId = 3, UserIdSender = "someUser"},
-                new Invitation(){GroupId = 4, UserIdSender = "someUser"},
-            };
+            //List<Invitation> listInvitation2 = new List<Invitation>()
+            //{
+            //    new Invitation(){GroupId = 3, UserIdSender = "someUser"},
+            //    new Invitation(){GroupId = 4, UserIdSender = "someUser"},
+            //};
 
             List<ApplicationUser> userList = new List<ApplicationUser>()
             {
-                new ApplicationUser() {UserName = "Jackson", Invitations = listInvitation},
+                new ApplicationUser() {UserName = "Jackson"}, // Invitations = listInvitation
                 new ApplicationUser() {UserName = "Robocop"},
-                new ApplicationUser() {UserName = "Terminator", Invitations = listInvitation2}
+                new ApplicationUser() {UserName = "Terminator"}, //, Invitations = listInvitation2
+                 new ApplicationUser() {UserName = "Predator"},
+                  new ApplicationUser() {UserName = "Kaczor Donald"}
             };
 
             List<Group> listGroup = new List<Group>()
