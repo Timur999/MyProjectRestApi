@@ -273,12 +273,14 @@
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\DTO\ApplicationUserDTO.cs" />
     <Compile Include="Models\DTO\ChatDTO.cs" />
+    <Compile Include="Models\DTO\CommentPostDTO.cs" />
     <Compile Include="Models\DTO\GroupDTO.cs" />
     <Compile Include="Models\DTO\InvitationDTO.cs" />
     <Compile Include="Models\DTO\PostDTO.cs" />
     <Compile Include="Models\Entity Types\Blog.cs" />
     <Compile Include="Models\Entity Types\ChatMessage.cs" />
     <Compile Include="Models\Entity Types\ChatRoom.cs" />
+    <Compile Include="Models\Entity Types\CommentPost.cs" />
     <Compile Include="Models\Entity Types\Group.cs" />
     <Compile Include="Models\Entity Types\GroupPost.cs" />
     <Compile Include="Models\Entity Types\ApplicationImage.cs" />

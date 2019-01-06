@@ -192,7 +192,22 @@ namespace MyProjectRestApi.Controllers
             {
                 return Content(HttpStatusCode.InternalServerError, ex.Message);
             }
-            return StatusCode(HttpStatusCode.NoContent);
+
+             string Base64StringImage = !String.IsNullOrEmpty(post.Image.ImagePath) ? getImageRelatedWithPost(post.Image.ImagePath) : null;
+
+            PostDTO postDTO = new PostDTO()
+            {
+                Id = post.Id,
+                Text = post.Text,
+                BlogId = post.Blog.BLogId,
+                UserName = post.User.UserName,
+                DateOfPublication = post.DateOfPublication,
+                ImageName = post.Image.ImageName,
+                ImagePath = image.ImagePath,
+                Base64StringImage = Base64StringImage,
+                IsPostOwner = true
+            };
+            return Ok(postDTO);
         }
 
 
@@ -408,6 +423,62 @@ namespace MyProjectRestApi.Controllers
                 return base.Ok(base64String);
                 //return Ok(image.ImagePath);
             }
+        }
+
+        [ResponseType(typeof(CommentPostDTO))]
+        [Route("api/GetComments/{id:int}")]
+        public async Task<IHttpActionResult> GetCommentsByGroup(int id)
+        {
+            string currentUser = GetCurrentUserId();
+            if (IsUserBelongToGroup(id, currentUser))
+            {
+                List<CommentPostDTO> commentsDto = await db.CommentPosts.
+                    Where(com => com.BlogId == id).Select(con => new CommentPostDTO()
+                {
+                    Id = con.Id,
+                    BlogId = con.BlogId,
+                    PostId = con.PostId,
+                    SenderName = con.User.UserName,
+                    Text = con.Text
+                }).ToListAsync();
+                return Ok(commentsDto);
+            }else
+                return Content(HttpStatusCode.Forbidden, "You have not permission");
+
+        }
+
+        [Route("api/PostComment")]
+        [ResponseType(typeof(CommentPostDTO))]
+        public async Task<IHttpActionResult> PostComment(CommentPostDTO commentDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            string currentUser = GetCurrentUserId();
+            if (IsUserBelongToGroup(commentDto.BlogId, currentUser))
+            {
+                CommentPost commentPost = new CommentPost()
+                {
+                    BlogId = commentDto.BlogId,
+                    PostId = commentDto.PostId,
+                    User = db.Users.Find(currentUser),
+                    Text = commentDto.Text
+                };
+
+                db.CommentPosts.Add(commentPost);
+                try
+                {
+                    await db.SaveChangesAsync();
+                }catch(Exception ex)
+                {
+                    return Content(HttpStatusCode.InternalServerError, ex.Message);
+                }
+                return Ok();
+            }else
+                return Content(HttpStatusCode.Forbidden, "You have not permission");
+
         }
 
 

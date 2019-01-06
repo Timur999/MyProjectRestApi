@@ -36,6 +36,7 @@ namespace MyProjectRestApi.Models
         public DbSet<ChatRoom> ChatRooms { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<ApplicationImage> ApplicationImages { get; set; }
+        public DbSet<CommentPost> CommentPosts { get; set; }
 
         public ApplicationDbContext()
             : base("DefaultConnection", throwIfV1Schema: false)
