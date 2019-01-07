@@ -18,7 +18,7 @@ namespace MyProjectRestApi.Models.Entity_Types
         public virtual ApplicationUser User { get; set; }
         //[Required]
         public virtual Blog Blog { get; set; }
-        public virtual ApplicationImage Image { get; set; }
+        public virtual PostImage Image { get; set; }
         
 
         public GroupPost() { }
@@ -31,7 +31,7 @@ namespace MyProjectRestApi.Models.Entity_Types
             this.User = User;
         }
 
-        public GroupPost(string text, ApplicationImage image, Blog blog, ApplicationUser User)
+        public GroupPost(string text, PostImage image, Blog blog, ApplicationUser User)
         {
             this.Text = text;
             this.DateOfPublication = DateTime.Now;

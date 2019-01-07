@@ -144,7 +144,7 @@ namespace MyProjectRestApi.Controllers
         public async Task<IHttpActionResult> PutPost()
         {
             //TODO: edit post with image
-            ApplicationImage image = null;
+            PostImage image = null;
             var httpRequest = HttpContext.Current.Request;
 
             var postedFile = httpRequest.Files["Image"];
@@ -162,23 +162,26 @@ namespace MyProjectRestApi.Controllers
 
             if (postedFile != null)
             {
-                //ApplicationImages and GroupPost is relathionship 1 - 1, so PostId equals ImageId
-                ApplicationImage oldImage = await db.ApplicationImages.FindAsync(postedPostId);
-                try
+                //PostImages and GroupPost is relathionship 1 - 1, so PostId equals ImageId
+                PostImage oldImage = await db.PostImages.FindAsync(postedPostId);
+                if(oldImage != null)
                 {
-                    //TRy directly add path from oldImage
-                    string filePath = @"D:\project folder\MyProjectRestApi\MyProjectRestApi\Image\";
-                    string fileName = oldImage.ImagePath;
-                    string fullPath = Path.Combine(filePath, fileName);
-                    File.Delete(oldImage.ImagePath);
-                    db.ApplicationImages.Remove(oldImage);
-                    await db.SaveChangesAsync();
-                }
-                catch (Exception ex)
-                {
-                    return Content(HttpStatusCode.InternalServerError, ex.Message);
-                }          
+                    try
+                    {
+                        string filePath = @"D:\project folder\MyProjectRestApi\MyProjectRestApi\Image\";  //TRy directly add path from oldImage
+                        string fileName = oldImage.ImagePath;
+                        string fullPath = Path.Combine(filePath, fileName);
+                        File.Delete(oldImage.ImagePath);
+                        db.PostImages.Remove(oldImage);
+                        await db.SaveChangesAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        return Content(HttpStatusCode.InternalServerError, ex.Message);
+                    }
+                }  
 
+                //Save new img to server
                 image = SaveImage(postedFile);
                 post.Image = image;
             }
@@ -256,7 +259,7 @@ namespace MyProjectRestApi.Controllers
         [ResponseType(typeof(PostDTO))]
         public async Task<IHttpActionResult> PostImage()
         {
-            ApplicationImage image = null;
+            PostImage image = null;
             var httpRequest = HttpContext.Current.Request;
 
             var postedFile = httpRequest.Files["Image"];
@@ -367,7 +370,7 @@ namespace MyProjectRestApi.Controllers
         public async Task<IHttpActionResult> DeleteGroupPost(int id)
         {
             GroupPost groupPost = await db.GroupPosts.FindAsync(id);
-            ApplicationImage image =  db.ApplicationImages.Find(id);
+            PostImage image =  db.PostImages.Find(id);
             if (groupPost == null)
             {
                 return NotFound();
@@ -401,7 +404,7 @@ namespace MyProjectRestApi.Controllers
                 return NotFound();
             }
 
-            ApplicationImage image = await db.ApplicationImages.FindAsync(id);
+            PostImage image = await db.PostImages.FindAsync(id);
             if (image == null)
             {
                 return NotFound();
@@ -518,7 +521,7 @@ namespace MyProjectRestApi.Controllers
             return user.Id;
         }
 
-        private ApplicationImage SaveImage(HttpPostedFile postedFile)
+        private PostImage SaveImage(HttpPostedFile postedFile)
         {
             string imageName = null;
             //create custome filename
@@ -535,7 +538,7 @@ namespace MyProjectRestApi.Controllers
             {
                 postedFile.InputStream.Close();
             }
-            ApplicationImage image = new ApplicationImage()
+            PostImage image = new PostImage()
             {
                 ImageName = imageName,
                 ImagePath = filePath
@@ -544,7 +547,7 @@ namespace MyProjectRestApi.Controllers
             return image;
         }
 
-        private async Task<string> SaveImageToDatabase(ApplicationImage image, string postedText, int blogId)
+        private async Task<string> SaveImageToDatabase(PostImage image, string postedText, int blogId)
         {
 
             using (ApplicationDbContext con = db)
@@ -608,7 +611,7 @@ namespace MyProjectRestApi.Controllers
 
         private string getImageRelatedWithPost(string ImagePath)
         {
-            //ApplicationImage image = db.ApplicationImages.Find(postId);
+            //ApplicationImage image = db.PostImages.Find(postId);
             //if (image == null)
             //{
             //    return "";

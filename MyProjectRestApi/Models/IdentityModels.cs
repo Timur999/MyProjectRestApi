@@ -16,6 +16,7 @@ namespace MyProjectRestApi.Models
         public virtual ICollection<Invitation> Invitations { get; set; }
         public virtual ICollection<ChatRoom> ChatRooms { get; set; }
         public virtual ICollection<ChatMessage> ChatMessages { get; set; }
+        public virtual ICollection<Event> Events { get; set; }
         //public virtual ApplicationImage ProfileImage { get; set; }
 
         public async Task<ClaimsIdentity> GenerateUserIdentityAsync(UserManager<ApplicationUser> manager, string authenticationType)
@@ -35,8 +36,10 @@ namespace MyProjectRestApi.Models
         public DbSet<Invitation> Invitations { get; set; }
         public DbSet<ChatRoom> ChatRooms { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
-        public DbSet<ApplicationImage> ApplicationImages { get; set; }
+        public DbSet<PostImage> PostImages { get; set; }
         public DbSet<CommentPost> CommentPosts { get; set; }
+        public DbSet<Event> Events { get; set; }
+        public DbSet<EventImage> EventImages { get; set; }
 
         public ApplicationDbContext()
             : base("DefaultConnection", throwIfV1Schema: false)
