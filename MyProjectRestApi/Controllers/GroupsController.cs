@@ -14,6 +14,7 @@ using MyProjectRestApi.Models.DTO;
 using MyProjectRestApi.Models.Entity_Types;
 using Microsoft.AspNet.Identity.Owin;
 using System.Security.Claims;
+using System.Globalization;
 
 namespace MyProjectRestApi.Controllers
 {
@@ -25,13 +26,20 @@ namespace MyProjectRestApi.Controllers
         // GET: api/Groups
         public IQueryable<GroupDTO> GetGroups()
         {
-            return db.Groups
-                .Select(g => new GroupDTO()
-                {
-                    GroupsName = g.GroupsName,
-                    AdminGroupId = g.AdminGroupId,
-                    DateOfCreatedGroup = g.DateOfCreatedGroup
-                });
+            string currentUserId = GetCurrentUserId();
+            var ci = new CultureInfo("pl-PL");
+
+            return (from g in db.Groups
+                    let userInGroup = new GroupDTO()
+                    {
+                        Id = g.Id,
+                        GroupsName = g.GroupsName,
+                        AdminGroupId = g.AdminGroupId,
+                        DateOfCreatedGroup = g.DateOfCreatedGroup,
+                        IsAdmin = currentUserId == g.AdminGroupId,
+                        IsMember = g.Users.Where(u => u.Id == currentUserId).Select(u => u.Id).FirstOrDefault() != null
+                    }
+                    select userInGroup).AsQueryable();
         }
 
         // GET: api/Groups/5

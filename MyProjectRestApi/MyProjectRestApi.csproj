@@ -269,7 +269,6 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Infrastructure\GroupModelBinder.cs" />
-    <Compile Include="ITypedHubClient.cs" />
     <Compile Include="Models\AccountBindingModels.cs" />
     <Compile Include="Models\AccountViewModels.cs" />
     <Compile Include="Models\DTO\ApplicationUserDTO.cs" />

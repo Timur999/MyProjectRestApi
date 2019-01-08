@@ -376,6 +376,11 @@ namespace MyProjectRestApi.Controllers
                 return NotFound();
             }
 
+            PostImage img = await db.PostImages.FindAsync(id);
+            if (img != null)
+            {
+                File.Delete(img.ImagePath);
+            }
             groupPost.Blog = null;
             groupPost.User = null;
             groupPost.Image = null;

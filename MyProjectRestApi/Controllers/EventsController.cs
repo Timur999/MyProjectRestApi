@@ -24,6 +24,29 @@ namespace MyProjectRestApi.Controllers
     {
         private ApplicationDbContext db = new ApplicationDbContext();
 
+
+
+        [ResponseType(typeof(List<EventDTO>))]
+        public async Task<IHttpActionResult> GetEvents()
+        {
+            string currentUserId = GetCurrentUserId();
+            List<EventDTO> result = await (from e in db.Events
+                                           let eventDto = new EventDTO
+                                           {
+                                               Id = e.Id,
+                                               EventName = e.Name,
+                                               EventDate = e.EventDate,
+                                               Users = e.Users.Select(u => new ApplicationUserDTO() { UserName = u.UserName }).ToList(),
+                                               IsAdmin = currentUserId == e.AdminId,
+                                               IsSubscriber = (e.Users.Where(u => u.Id == currentUserId).FirstOrDefault() != null)
+                                           }
+                                           select (eventDto)).ToListAsync();
+
+            return Ok(result);
+        }
+
+
+
         // GET: api/Events
         [ResponseType(typeof(EventDTO))]
         [Route("api/Events/{skipEventPost:int}")]
@@ -42,7 +65,7 @@ namespace MyProjectRestApi.Controllers
                  {
                      Id = eventDto.Id,
                      UserName = adminUserName,
-                     IsOwner = currentUserId == eventDto.AdminId,
+                     IsAdmin = currentUserId == eventDto.AdminId,
                      EventDate = eventDto.EventDate,
                      EventName = eventDto.Name,
                      Text = eventDto.Text,
@@ -214,7 +237,7 @@ namespace MyProjectRestApi.Controllers
                 Base64StringImage = Base64StringImage,
                 Users = editEvent.Users.Select(user => new ApplicationUserDTO()
                 { Id = user.Id, UserName = user.UserName }).ToList(),
-                IsOwner = true
+                IsAdmin = true
             };
 
             return Ok(eventDto);
@@ -284,7 +307,7 @@ namespace MyProjectRestApi.Controllers
                     AdminId = currentUserId,
                     EventDate = postedEventDate,
                     Text = postedEventText,
-                    IsOwner = true
+                    IsAdmin = true
                 };
             }
             else
@@ -300,7 +323,7 @@ namespace MyProjectRestApi.Controllers
                     Text = postedEventText,
                     ImageName = objEvent.Image.ImageName,
                     Base64StringImage = Base64StringImage,
-                    IsOwner = true
+                    IsAdmin = true
                 };
             }
 
@@ -323,7 +346,12 @@ namespace MyProjectRestApi.Controllers
             {
                 return Content(HttpStatusCode.Unauthorized, "An error occurred, please try again or contact the administrator.");
             }
-
+            EventImage img = await db.EventImages.FindAsync(id);
+            if (img != null)
+            {
+                File.Delete(img.ImagePath);
+            }
+            @event.Image = null;
             @event.Users = null;
             db.Events.Remove(@event);
             await db.SaveChangesAsync();
