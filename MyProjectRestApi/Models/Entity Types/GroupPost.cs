@@ -29,6 +29,7 @@ namespace MyProjectRestApi.Models.Entity_Types
             this.DateOfPublication = DateTime.Now;
             this.Blog = blog;
             this.User = User;
+            this.Image = null;
         }
 
         public GroupPost(string text, PostImage image, Blog blog, ApplicationUser User)

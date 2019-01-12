@@ -192,3 +192,10 @@ D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.Core.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.SystemWeb.pdb
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.SystemWeb.xml
+D:\project folder\MyProjectRestApi\MyProjectRestApi\obj\Debug\MyProjectRestApi.Migrations.InitialCreate.resources
+D:\project folder\MyProjectRestApi\MyProjectRestApi\obj\Debug\MyProjectRestApi.csproj.GenerateResource.cache
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Azure.KeyVault.Core.dll
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.WindowsAzure.Storage.dll
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Azure.KeyVault.Core.xml
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.WindowsAzure.Storage.pdb
+D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.WindowsAzure.Storage.xml

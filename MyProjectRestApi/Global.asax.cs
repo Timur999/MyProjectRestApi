@@ -21,7 +21,7 @@ namespace MyProjectRestApi
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
-            Database.SetInitializer<ApplicationDbContext>(new Initalizer());
+            //Database.SetInitializer<ApplicationDbContext>(new Initalizer());
         }
     }
 }

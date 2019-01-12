@@ -13,14 +13,13 @@ namespace MyProjectRestApi
 {
     public partial class Startup
     {
-
-
-    public void Configuration(IAppBuilder app)
+        public void Configuration(IAppBuilder app)
         {
 
             app.UseCors(CorsOptions.AllowAll);
             ConfigureAuth(app);
             ConfigureSignalR(app);
+
             //app.MapSignalR();
             //app.Map("/negotiate", map =>
             //{

@@ -13,15 +13,26 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Description;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Auth;
+using Microsoft.WindowsAzure.Storage.Blob;
 using MyProjectRestApi.Models;
 using MyProjectRestApi.Models.DTO;
 using MyProjectRestApi.Models.Entity_Types;
+using MyProjectRestApi.Models.Helper;
 
 namespace MyProjectRestApi.Controllers
 {
     [Authorize]
     public class PostsController : ApiController
     {
+
+        // Create storagecredentials object by reading the values from the configuration (appsettings.json)
+        private static StorageCredentials storageCredentials = new StorageCredentials(StorageAzureHelper._storageConfig.AccountName, StorageAzureHelper._storageConfig.AccountKey);
+
+        // Create cloudstorage account by passing the storagecredentials
+        private static CloudStorageAccount storageAccount = new CloudStorageAccount(storageCredentials, true);
+
         private ApplicationDbContext db = new ApplicationDbContext();
 
         // GET: api/Posts
@@ -35,19 +46,6 @@ namespace MyProjectRestApi.Controllers
                     Text = p.Text,
                     DateOfPublication = p.DateOfPublication
                 });
-        }
-
-        // GET: api/Posts/5
-        [ResponseType(typeof(GroupPost))]
-        public async Task<IHttpActionResult> GetGroupPost(int id)
-        {
-            GroupPost groupPost = await db.GroupPosts.FindAsync(id);
-            if (groupPost == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(groupPost);
         }
 
         // GET: api/PostByGroup/5
@@ -90,7 +88,8 @@ namespace MyProjectRestApi.Controllers
             List<PostDTO> posts = null;
             int postsListLength = 0;
             string currentUser = GetCurrentUserId();
-            if (IsUserBelongToGroup(id, GetCurrentUserId()))
+
+            if (IsUserBelongToGroup(id, GetCurrentUserId()) || id == 1)
             {
                 try
                 {
@@ -133,8 +132,11 @@ namespace MyProjectRestApi.Controllers
             //Adding image to post if exist
             foreach (var item in posts)
             {
-                item.Base64StringImage = !String.IsNullOrEmpty(item.ImagePath)
-                ? getImageRelatedWithPost(item.ImagePath) : null;
+                if (item.ImagePath == null)
+                    continue;
+                string base64 = FromAzureToBase64(item.ImagePath, storageAccount);
+
+                item.Base64StringImage = base64;
             }
 
             return Ok(posts);
@@ -164,14 +166,15 @@ namespace MyProjectRestApi.Controllers
             {
                 //PostImages and GroupPost is relathionship 1 - 1, so PostId equals ImageId
                 PostImage oldImage = await db.PostImages.FindAsync(postedPostId);
-                if(oldImage != null)
+                if (oldImage != null)
                 {
                     try
                     {
                         string filePath = @"D:\project folder\MyProjectRestApi\MyProjectRestApi\Image\";  //TRy directly add path from oldImage
                         string fileName = oldImage.ImagePath;
                         string fullPath = Path.Combine(filePath, fileName);
-                        File.Delete(oldImage.ImagePath);
+                        await StorageAzureHelper.DeleteFileToStorage(oldImage.ImageName, StorageAzureHelper._storageConfig);
+                        //File.Delete(oldImage.ImagePath);
                         db.PostImages.Remove(oldImage);
                         await db.SaveChangesAsync();
                     }
@@ -179,10 +182,11 @@ namespace MyProjectRestApi.Controllers
                     {
                         return Content(HttpStatusCode.InternalServerError, ex.Message);
                     }
-                }  
+                }
 
                 //Save new img to server
-                image = SaveImage(postedFile);
+                image = await saveFileToStorageAzure(postedFile);
+                //image = SaveImage(postedFile);
                 post.Image = image;
             }
 
@@ -195,8 +199,8 @@ namespace MyProjectRestApi.Controllers
             {
                 return Content(HttpStatusCode.InternalServerError, ex.Message);
             }
-
-             string Base64StringImage = !String.IsNullOrEmpty(post.Image.ImagePath) ? getImageRelatedWithPost(post.Image.ImagePath) : null;
+  
+            string Base64StringImage = !String.IsNullOrEmpty(post.Image.ImagePath) ? FromAzureToBase64(post.Image.ImagePath, storageAccount) : null;
 
             PostDTO postDTO = new PostDTO()
             {
@@ -214,163 +218,12 @@ namespace MyProjectRestApi.Controllers
         }
 
 
-
-        // PUT: api/Posts/5
-        [ResponseType(typeof(void))]
-        public async Task<IHttpActionResult> PutGroupPost(int id, GroupPost groupPost)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            //TODO: check userId from GroupPost and compare with current User (Only post owner can update your post)
-
-            if (id != groupPost.Id)
-            {
-                return BadRequest();
-            }
-            GroupPost post = await db.GroupPosts.FindAsync(id);
-            post.DateOfPublication = DateTime.Now;
-            post.Text = groupPost.Text;
-
-            db.Entry(post).State = EntityState.Modified;
-
-            try
-            {
-                await db.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!GroupPostExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return StatusCode(HttpStatusCode.NoContent);
-        }
-
-        [Route("api/PostImage")]
-        [ResponseType(typeof(PostDTO))]
-        public async Task<IHttpActionResult> PostImage()
-        {
-            PostImage image = null;
-            var httpRequest = HttpContext.Current.Request;
-
-            var postedFile = httpRequest.Files["Image"];
-            var postedText = httpRequest["Text"];
-            int postedBlogId = int.Parse(httpRequest["BlogId"]);
-
-            if (postedFile != null)
-            {
-                image = SaveImage(postedFile);
-            }
-
-            using (ApplicationDbContext con = db)
-            {
-                Blog blog = await con.Blogs.FindAsync(postedBlogId);
-                if (blog == null)
-                {
-                    return BadRequest();
-                }
-                string userId = GetCurrentUserId();
-
-                bool isBelongToGroup = IsUserBelongToGroup(blog.BLogId, userId);
-                if (!isBelongToGroup)
-                {
-                    return Content(HttpStatusCode.Unauthorized, "An error occurred, please try again or contact the administrator.");
-                }
-
-                ApplicationUser objCurrentUser = con.Users.Find(userId);
-                GroupPost groupPost = null;
-                PostDTO postDTO = null;
-                if (image != null)
-                {
-                    groupPost = new GroupPost(postedText, image, blog, objCurrentUser);
-                    postDTO = new PostDTO()
-                    {
-                        Text = groupPost.Text,
-                        DateOfPublication = groupPost.DateOfPublication,
-                        BlogId = blog.BLogId,
-                        UserName = objCurrentUser.UserName,
-                        ImagePath = image.ImagePath,
-                        ImageName = image.ImageName,
-                        IsPostOwner = true
-                    };
-                    postDTO.Base64StringImage = !String.IsNullOrEmpty(postDTO.ImagePath)
-                        ? getImageRelatedWithPost(postDTO.ImagePath) : null;
-                }
-                else
-                {
-                    groupPost = new GroupPost(postedText, blog, objCurrentUser);
-                    postDTO = new PostDTO()
-                    {
-                        BlogId = blog.BLogId,
-                        DateOfPublication = groupPost.DateOfPublication,
-                        Text = groupPost.Text,
-                        UserName = objCurrentUser.UserName,
-                        IsPostOwner = true
-                    };
-                }
-
-                try
-                {
-                    con.GroupPosts.Add(groupPost);
-                    await db.SaveChangesAsync();
-                    postDTO.Id = groupPost.Id;
-                }
-                catch (Exception ex)
-                {
-                    return Content(HttpStatusCode.InternalServerError, ex.Message);
-                }
-
-
-                return Ok(postDTO);
-            }
-        }
-
-        // POST: api/Posts
-        [ResponseType(typeof(PostDTO))]
-        public async Task<IHttpActionResult> PostGroupPost(PostDTO postDTO)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            Blog blog = await db.Blogs.FindAsync(postDTO.BlogId);
-            if (blog == null)
-            {
-                return BadRequest();
-            }
-            string userId = GetCurrentUserId();
-
-            bool isBelongToGroup = IsUserBelongToGroup(blog.BLogId, userId);
-            if (!isBelongToGroup)
-            {
-                return Content(HttpStatusCode.Unauthorized, "Unauthorized");
-            }
-
-            ApplicationUser currentUser = db.Users.Find(userId);
-            GroupPost groupPost = new GroupPost(postDTO.Text, blog, currentUser);
-
-            db.GroupPosts.Add(groupPost);
-            await db.SaveChangesAsync();
-
-            return CreatedAtRoute("DefaultApi", new { id = groupPost.Id }, postDTO);
-        }
-
         // DELETE: api/Posts/5
         [ResponseType(typeof(GroupPost))]
         public async Task<IHttpActionResult> DeleteGroupPost(int id)
         {
             GroupPost groupPost = await db.GroupPosts.FindAsync(id);
-            PostImage image =  db.PostImages.Find(id);
+            PostImage image = db.PostImages.Find(id);
             if (groupPost == null)
             {
                 return NotFound();
@@ -379,7 +232,8 @@ namespace MyProjectRestApi.Controllers
             PostImage img = await db.PostImages.FindAsync(id);
             if (img != null)
             {
-                File.Delete(img.ImagePath);
+                await StorageAzureHelper.DeleteFileToStorage(img.ImageName, StorageAzureHelper._storageConfig);
+                // File.Delete(img.ImagePath);
             }
             groupPost.Blog = null;
             groupPost.User = null;
@@ -393,44 +247,8 @@ namespace MyProjectRestApi.Controllers
             {
                 return Content(HttpStatusCode.InternalServerError, ex.Message);
             }
-            
+
             return Ok(groupPost);
-        }
-
-
-        // GET: api/GetImage/5
-        // id equals idPost
-        [Route("api/GetImage/{id:int}")]
-        public async Task<IHttpActionResult> GetImage(int id)
-        {
-            GroupPost groupPost = await db.GroupPosts.FindAsync(id);
-            if (groupPost == null)
-            {
-                return NotFound();
-            }
-
-            PostImage image = await db.PostImages.FindAsync(id);
-            if (image == null)
-            {
-                return NotFound();
-            }
-
-            var path = HttpContext.Current.Server.MapPath("~/Image/" + image.ImageName);
-
-            string base64String = "";
-            using (Image img = Image.FromFile(path))
-            {
-                using (MemoryStream m = new MemoryStream())
-                {
-                    img.Save(m, img.RawFormat);
-                    byte[] imageBytes = m.ToArray();
-
-                    // Convert byte[] to Base64 String
-                    base64String = Convert.ToBase64String(imageBytes);
-                }
-                return base.Ok(base64String);
-                //return Ok(image.ImagePath);
-            }
         }
 
         [ResponseType(typeof(CommentPostDTO))]
@@ -442,15 +260,16 @@ namespace MyProjectRestApi.Controllers
             {
                 List<CommentPostDTO> commentsDto = await db.CommentPosts.
                     Where(com => com.BlogId == id).Select(con => new CommentPostDTO()
-                {
-                    Id = con.Id,
-                    BlogId = con.BlogId,
-                    PostId = con.PostId,
-                    SenderName = con.User.UserName,
-                    Text = con.Text
-                }).ToListAsync();
+                    {
+                        Id = con.Id,
+                        BlogId = con.BlogId,
+                        PostId = con.PostId,
+                        SenderName = con.User.UserName,
+                        Text = con.Text
+                    }).ToListAsync();
                 return Ok(commentsDto);
-            }else
+            }
+            else
                 return Content(HttpStatusCode.Forbidden, "You have not permission");
 
         }
@@ -479,16 +298,95 @@ namespace MyProjectRestApi.Controllers
                 try
                 {
                     await db.SaveChangesAsync();
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     return Content(HttpStatusCode.InternalServerError, ex.Message);
                 }
                 return Ok();
-            }else
+            }
+            else
                 return Content(HttpStatusCode.Forbidden, "You have not permission");
 
         }
 
+        [Route("api/PostImageToAzure")]
+        [ResponseType(typeof(CommentPostDTO))]
+        public async Task<IHttpActionResult> PostImageToAzure()
+        {
+            PostImage image = null;
+            var httpRequest = HttpContext.Current.Request;
+
+            var postedFile = httpRequest.Files["Image"];
+            var postedText = httpRequest["Text"];
+            int postedBlogId = int.Parse(httpRequest["BlogId"]);
+
+            Blog blog = db.Blogs.Find(postedBlogId);
+            if (blog == null)
+            {
+                return BadRequest();
+            }
+
+            string userId = GetCurrentUserId();
+
+            bool isBelongToGroup = IsUserBelongToGroup(blog.BLogId, userId);
+            if (!isBelongToGroup)
+            {
+                return Content(HttpStatusCode.Unauthorized, "An error occurred, please try again or contact the administrator.");
+            }
+
+            string base64 = "";
+            if (postedFile != null)
+            {
+                image = await saveFileToStorageAzure(postedFile);
+
+                base64 = FromAzureToBase64(image.ImagePath, storageAccount);
+            }
+
+            ApplicationUser objCurrentUser = db.Users.Find(userId);
+            GroupPost groupPost = null;
+            PostDTO postDTO = null;
+            if (image != null)
+            {
+                groupPost = new GroupPost(postedText, image, blog, objCurrentUser);
+                postDTO = new PostDTO()
+                {
+                    Text = groupPost.Text,
+                    DateOfPublication = groupPost.DateOfPublication,
+                    BlogId = blog.BLogId,
+                    UserName = objCurrentUser.UserName,
+                    ImagePath = image.ImagePath,
+                    ImageName = image.ImageName,
+                    IsPostOwner = true
+                };
+                postDTO.Base64StringImage = base64;
+            }
+            else
+            {
+                groupPost = new GroupPost(postedText, blog, objCurrentUser);
+                postDTO = new PostDTO()
+                {
+                    BlogId = blog.BLogId,
+                    DateOfPublication = groupPost.DateOfPublication,
+                    Text = groupPost.Text,
+                    UserName = objCurrentUser.UserName,
+                    IsPostOwner = true
+                };
+            }
+
+            try
+            {
+                db.GroupPosts.Add(groupPost);
+                await db.SaveChangesAsync();
+                postDTO.Id = groupPost.Id;
+            }
+            catch (Exception ex)
+            {
+                return Content(HttpStatusCode.InternalServerError, ex.Message);
+            }
+
+            return Ok(postDTO);
+        }
 
         protected override void Dispose(bool disposing)
         {
@@ -506,11 +404,17 @@ namespace MyProjectRestApi.Controllers
 
         private bool IsUserBelongToGroup(int groupId, string userId)
         {
-            int hasUserAlreadyExistInGroup = (from g in db.Groups
+            int hasUserAlreadyExistInGroup;
+            if (groupId == 1)
+                hasUserAlreadyExistInGroup = 1;
+            else
+            {
+                hasUserAlreadyExistInGroup = (from g in db.Groups
                                               where (g.Id == groupId)
                                               let userInGroup = g.Users.Where(u => u.Id == userId)
                                               where userInGroup.Any()
                                               select userInGroup.Count()).FirstOrDefault();
+            }
 
             return hasUserAlreadyExistInGroup > 0 ? true : false;
 
@@ -526,120 +430,289 @@ namespace MyProjectRestApi.Controllers
             return user.Id;
         }
 
-        private PostImage SaveImage(HttpPostedFile postedFile)
+        private async Task<PostImage> saveFileToStorageAzure(HttpPostedFile postedFile)
         {
+            string imageUrl = "";
             string imageName = null;
+            PostImage image = null;
             //create custome filename
             imageName = new string(Path.GetFileNameWithoutExtension(postedFile.FileName).Take(10).ToArray()).Replace(" ", "-");
             imageName = imageName + DateTime.Now.ToString("yymmssfff") + Path.GetExtension(postedFile.FileName);
-            var filePath = HttpContext.Current.Server.MapPath("~/Image/" + imageName);
+            //var filePath = HttpContext.Current.Server.MapPath("~/Image/" + imageName);
+
             try
             {
-                postedFile.SaveAs(filePath);
-                postedFile.InputStream.Flush();
+                if (postedFile != null)
+                {
+                    using (Stream stream = postedFile.InputStream)
+                    {
+                        imageUrl = await StorageAzureHelper.UploadFileToStorage(stream, imageName, StorageAzureHelper._storageConfig);
+                    }
+                    if (!string.IsNullOrEmpty(imageUrl))
+                    {
+                        image = new PostImage()
+                        {
+                            ImageName = imageName,
+                            ImagePath = imageUrl
+                        };
+                    }
+                }
             }
-            catch (Exception ex) { }
-            finally
+            catch (Exception ex)
             {
-                postedFile.InputStream.Close();
+                return null;
             }
-            PostImage image = new PostImage()
-            {
-                ImageName = imageName,
-                ImagePath = filePath
-            };
 
             return image;
         }
 
-        private async Task<string> SaveImageToDatabase(PostImage image, string postedText, int blogId)
+
+        private static string FromAzureToBase64(string azureUri, CloudStorageAccount StorageAccount)
         {
-
-            using (ApplicationDbContext con = db)
-            {
-                Blog blog = await con.Blogs.FindAsync(blogId);
-                if (blog == null)
-                {
-                    return "BadRequest";
-                }
-                string userId = GetCurrentUserId();
-
-                bool isBelongToGroup = IsUserBelongToGroup(blog.BLogId, userId);
-                if (!isBelongToGroup)
-                {
-                    return "Unauthorized";
-                }
-
-                ApplicationUser currentUser = con.Users.Find(userId);
-                GroupPost groupPost = null;
-                PostDTO postDTO = null;
-                if (image != null)
-                {
-                    groupPost = new GroupPost(postedText, image, blog, currentUser);
-                    postDTO = new PostDTO()
-                    {
-                        Text = groupPost.Text,
-                        DateOfPublication = groupPost.DateOfPublication,
-                        BlogId = blog.BLogId,
-                        UserName = currentUser.UserName,
-                        ImagePath = image.ImagePath,
-                        ImageName = image.ImageName,
-                        IsPostOwner = true
-                    };
-                }
-                else
-                {
-                    groupPost = new GroupPost(postedText, blog, currentUser);
-                    postDTO = new PostDTO()
-                    {
-                        BlogId = blog.BLogId,
-                        DateOfPublication = groupPost.DateOfPublication,
-                        Text = groupPost.Text,
-                        UserName = currentUser.UserName,
-                        IsPostOwner = true
-                    };
-                }
-
-                try
-                {
-                    con.GroupPosts.Add(groupPost);
-                    await db.SaveChangesAsync();
-                }
-                catch (Exception ex)
-                {
-                    //return ex.Message;
-                }
-
-                return "Success";
-            }
+            Uri blobUri = new Uri(azureUri);
+            CloudBlockBlob blob = new CloudBlockBlob(blobUri, StorageAccount.Credentials);
+            blob.FetchAttributes();//Fetch blob's properties
+            byte[] arr = new byte[blob.Properties.Length];
+            blob.DownloadToByteArray(arr, 0);
+            var azureBase64 = Convert.ToBase64String(arr);
+            return azureBase64;
         }
 
-        private string getImageRelatedWithPost(string ImagePath)
-        {
-            //ApplicationImage image = db.PostImages.Find(postId);
-            //if (image == null)
-            //{
-            //    return "";
-            //}
 
-            //var path = HttpContext.Current.Server.MapPath("~/Image/" + ImageName);
 
-            var path = ImagePath;
+        // PUT: api/Posts/5
+        //[ResponseType(typeof(void))]
+        //public async Task<IHttpActionResult> PutGroupPost(int id, GroupPost groupPost)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return BadRequest(ModelState);
+        //    }
 
-            string base64String = "";
-            using (Image img = Image.FromFile(path))
-            {
-                using (MemoryStream m = new MemoryStream())
-                {
-                    img.Save(m, img.RawFormat);
-                    byte[] imageBytes = m.ToArray();
+        //    //TODO: check userId from GroupPost and compare with current User (Only post owner can update your post)
 
-                    // Convert byte[] to Base64 String
-                    base64String = Convert.ToBase64String(imageBytes);
-                }
-                return base64String;
-            }
-        }
+        //    if (id != groupPost.Id)
+        //    {
+        //        return BadRequest();
+        //    }
+        //    GroupPost post = await db.GroupPosts.FindAsync(id);
+        //    post.DateOfPublication = DateTime.Now;
+        //    post.Text = groupPost.Text;
+
+        //    db.Entry(post).State = EntityState.Modified;
+
+        //    try
+        //    {
+        //        await db.SaveChangesAsync();
+        //    }
+        //    catch (DbUpdateConcurrencyException)
+        //    {
+        //        if (!GroupPostExists(id))
+        //        {
+        //            return NotFound();
+        //        }
+        //        else
+        //        {
+        //            throw;
+        //        }
+        //    }
+
+        //    return StatusCode(HttpStatusCode.NoContent);
+        //}
+
+
+        //[Route("api/PostImage")]
+        //[ResponseType(typeof(PostDTO))]
+        //public async Task<IHttpActionResult> PostImage()
+        //{
+        //    PostImage image = null;
+        //    var httpRequest = HttpContext.Current.Request;
+
+        //    var postedFile = httpRequest.Files["Image"];
+        //    var postedText = httpRequest["Text"];
+        //    int postedBlogId = int.Parse(httpRequest["BlogId"]);
+
+        //    if (postedFile != null)
+        //    {
+        //        image = SaveImage(postedFile);
+        //    }
+
+        //    using (ApplicationDbContext con = db)
+        //    {
+        //        Blog blog = await con.Blogs.FindAsync(postedBlogId);
+        //        if (blog == null)
+        //        {
+        //            return BadRequest();
+        //        }
+        //        string userId = GetCurrentUserId();
+
+        //        bool isBelongToGroup = IsUserBelongToGroup(blog.BLogId, userId);
+        //        if (!isBelongToGroup)
+        //        {
+        //            return Content(HttpStatusCode.Unauthorized, "An error occurred, please try again or contact the administrator.");
+        //        }
+
+        //        ApplicationUser objCurrentUser = con.Users.Find(userId);
+        //        GroupPost groupPost = null;
+        //        PostDTO postDTO = null;
+        //        if (image != null)
+        //        {
+        //            groupPost = new GroupPost(postedText, image, blog, objCurrentUser);
+        //            postDTO = new PostDTO()
+        //            {
+        //                Text = groupPost.Text,
+        //                DateOfPublication = groupPost.DateOfPublication,
+        //                BlogId = blog.BLogId,
+        //                UserName = objCurrentUser.UserName,
+        //                ImagePath = image.ImagePath,
+        //                ImageName = image.ImageName,
+        //                IsPostOwner = true
+        //            };
+        //            postDTO.Base64StringImage = !String.IsNullOrEmpty(postDTO.ImagePath)
+        //                ? getImageRelatedWithPost(postDTO.ImagePath) : null;
+        //        }
+        //        else
+        //        {
+        //            groupPost = new GroupPost(postedText, blog, objCurrentUser);
+        //            postDTO = new PostDTO()
+        //            {
+        //                BlogId = blog.BLogId,
+        //                DateOfPublication = groupPost.DateOfPublication,
+        //                Text = groupPost.Text,
+        //                UserName = objCurrentUser.UserName,
+        //                IsPostOwner = true
+        //            };
+        //        }
+
+        //        try
+        //        {
+        //            con.GroupPosts.Add(groupPost);
+        //            await db.SaveChangesAsync();
+        //            postDTO.Id = groupPost.Id;
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            return Content(HttpStatusCode.InternalServerError, ex.Message);
+        //        }
+
+
+        //        return Ok(postDTO);
+        //    }
+        //}
+
+        //// POST: api/Posts
+        //[ResponseType(typeof(PostDTO))]
+        //public async Task<IHttpActionResult> PostGroupPost(PostDTO postDTO)
+        //{
+        //    if (!ModelState.IsValid)
+        //    {
+        //        return BadRequest(ModelState);
+        //    }
+
+        //    Blog blog = await db.Blogs.FindAsync(postDTO.BlogId);
+        //    if (blog == null)
+        //    {
+        //        return BadRequest();
+        //    }
+        //    string userId = GetCurrentUserId();
+
+        //    bool isBelongToGroup = IsUserBelongToGroup(blog.BLogId, userId);
+        //    if (!isBelongToGroup)
+        //    {
+        //        return Content(HttpStatusCode.Unauthorized, "Unauthorized");
+        //    }
+
+        //    ApplicationUser currentUser = db.Users.Find(userId);
+        //    GroupPost groupPost = new GroupPost(postDTO.Text, blog, currentUser);
+
+        //    db.GroupPosts.Add(groupPost);
+        //    await db.SaveChangesAsync();
+
+        //    return CreatedAtRoute("DefaultApi", new { id = groupPost.Id }, postDTO);
+        //}
+
+
+        // GET: api/GetImage/5
+        // id equals idPost
+        //[Route("api/GetImage/{id:int}")]
+        //public async Task<IHttpActionResult> GetImage(int id)
+        //{
+        //    GroupPost groupPost = await db.GroupPosts.FindAsync(id);
+        //    if (groupPost == null)
+        //    {
+        //        return NotFound();
+        //    }
+
+        //    PostImage image = await db.PostImages.FindAsync(id);
+        //    if (image == null)
+        //    {
+        //        return NotFound();
+        //    }
+
+        //    var path = HttpContext.Current.Server.MapPath("~/Image/" + image.ImageName);
+
+        //    string base64String = "";
+        //    using (Image img = Image.FromFile(path))
+        //    {
+        //        using (MemoryStream m = new MemoryStream())
+        //        {
+        //            img.Save(m, img.RawFormat);
+        //            byte[] imageBytes = m.ToArray();
+
+        //            // Convert byte[] to Base64 String
+        //            base64String = Convert.ToBase64String(imageBytes);
+        //        }
+        //        return base.Ok(base64String);
+        //        //return Ok(image.ImagePath);
+        //    }
+        //}
+
+
+        //private PostImage SaveImage(HttpPostedFile postedFile)
+        //{
+        //    string imageName = null;
+        //    //create custome filename
+        //    imageName = new string(Path.GetFileNameWithoutExtension(postedFile.FileName).Take(10).ToArray()).Replace(" ", "-");
+        //    imageName = imageName + DateTime.Now.ToString("yymmssfff") + Path.GetExtension(postedFile.FileName);
+        //    var filePath = HttpContext.Current.Server.MapPath("~/Image/" + imageName);
+        //    try
+        //    {
+        //        postedFile.SaveAs(filePath);
+        //        postedFile.InputStream.Flush();
+        //    }
+        //    catch (Exception ex) { }
+        //    finally
+        //    {
+        //        postedFile.InputStream.Close();
+        //    }
+        //    PostImage image = new PostImage()
+        //    {
+        //        ImageName = imageName,
+        //        ImagePath = filePath
+        //    };
+
+        //    return image;
+        //}
+
+        //private string getImageRelatedWithPost(string ImagePath)
+        //{
+        //    var path = ImagePath;
+        //    string base64String = "";
+        //    using (Image img = Image.FromFile(path))
+        //    {
+        //        using (MemoryStream m = new MemoryStream())
+        //        {
+        //            img.Save(m, img.RawFormat);
+        //            byte[] imageBytes = m.ToArray();
+
+        //            // Convert byte[] to Base64 String
+        //            base64String = Convert.ToBase64String(imageBytes);
+        //        }
+        //        return base64String;
+        //    }
+        //}
+
+
 
     }
 }
