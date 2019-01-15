@@ -43,8 +43,10 @@ namespace MyProjectRestApi.Controllers
             return db.GroupPosts
                 .Select(p => new PostDTO()
                 {
+                    Id = p.Id,
                     Text = p.Text,
-                    DateOfPublication = p.DateOfPublication
+                    DateOfPublication = p.DateOfPublication,
+                    UserName = p.User.UserName
                 });
         }
 

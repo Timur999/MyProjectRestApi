@@ -275,9 +275,9 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Infrastructure\GroupModelBinder.cs" />
-    <Compile Include="Migrations\201901081738595_InitialCreate.cs" />
-    <Compile Include="Migrations\201901081738595_InitialCreate.Designer.cs">
-      <DependentUpon>201901081738595_InitialCreate.cs</DependentUpon>
+    <Compile Include="Migrations\201901121802555_InitialCreate.cs" />
+    <Compile Include="Migrations\201901121802555_InitialCreate.Designer.cs">
+      <DependentUpon>201901121802555_InitialCreate.cs</DependentUpon>
     </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AccountBindingModels.cs" />
@@ -389,8 +389,8 @@
     <Content Include="Scripts\jquery-1.10.2.min.map" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Migrations\201901081738595_InitialCreate.resx">
-      <DependentUpon>201901081738595_InitialCreate.cs</DependentUpon>
+    <EmbeddedResource Include="Migrations\201901121802555_InitialCreate.resx">
+      <DependentUpon>201901121802555_InitialCreate.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

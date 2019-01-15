@@ -16,7 +16,6 @@ namespace MyProjectRestApi.Models.Entity_Types
 
         public virtual ICollection<ApplicationUser> Users { get; set; }
         public virtual Blog Blog { get; set; }
-        // public virtual ICollection<UserPost> UserPosts { get; set; }
 
         public Group()
         {
@@ -36,7 +35,6 @@ namespace MyProjectRestApi.Models.Entity_Types
             this.DateOfCreatedGroup = DateTime.Now;
             this.Blog = new Blog(groupsName);
             this.Users = users;
-            //users list has always one element 
             this.AdminGroupId = adminId;
         }
 

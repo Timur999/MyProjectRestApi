@@ -10,7 +10,6 @@ namespace MyProjectRestApi.Migrations
         public Configuration()
         {
             AutomaticMigrationsEnabled = false;
-            ContextKey = "MyProjectRestApi.Models.ApplicationDbContext";
         }
 
         protected override void Seed(MyProjectRestApi.Models.ApplicationDbContext context)

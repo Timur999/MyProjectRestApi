@@ -16,8 +16,6 @@ namespace MyProjectRestApi.Models.Entity_Types
         [Required]
         [StringLength(150)]
         public string ImageName { get; set; }
-
-        //public virtual ApplicationUser ApplicationUser { get; set; }
         public virtual GroupPost GroupPost { get; set; }
     }
 }
