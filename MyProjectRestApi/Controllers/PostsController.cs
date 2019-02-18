@@ -172,11 +172,7 @@ namespace MyProjectRestApi.Controllers
                 {
                     try
                     {
-                        string filePath = @"D:\project folder\MyProjectRestApi\MyProjectRestApi\Image\";  //TRy directly add path from oldImage
-                        string fileName = oldImage.ImagePath;
-                        string fullPath = Path.Combine(filePath, fileName);
                         await StorageAzureHelper.DeleteFileToStorage(oldImage.ImageName, StorageAzureHelper._storageConfig);
-                        //File.Delete(oldImage.ImagePath);
                         db.PostImages.Remove(oldImage);
                         await db.SaveChangesAsync();
                     }
@@ -188,7 +184,6 @@ namespace MyProjectRestApi.Controllers
 
                 //Save new img to server
                 image = await saveFileToStorageAzure(postedFile);
-                //image = SaveImage(postedFile);
                 post.Image = image;
             }
 
@@ -235,7 +230,6 @@ namespace MyProjectRestApi.Controllers
             if (img != null)
             {
                 await StorageAzureHelper.DeleteFileToStorage(img.ImageName, StorageAzureHelper._storageConfig);
-                // File.Delete(img.ImagePath);
             }
             groupPost.Blog = null;
             groupPost.User = null;

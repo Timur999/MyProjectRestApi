@@ -186,11 +186,7 @@ namespace MyProjectRestApi.Controllers
                 {
                     try
                     {
-                        string filePath = @"D:\project folder\MyProjectRestApi\MyProjectRestApi\Image\";  //TRy directly add path from oldImage
-                        string fileName = oldImage.ImagePath;
-                        string fullPath = Path.Combine(filePath, fileName);
                         await StorageAzureHelper.DeleteFileToStorage(oldImage.ImageName, StorageAzureHelper._storageConfig);
-                        //File.Delete(oldImage.ImagePath);
                         db.EventImages.Remove(oldImage);
                         await db.SaveChangesAsync();
                     }

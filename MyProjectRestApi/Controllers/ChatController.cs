@@ -240,7 +240,6 @@ namespace MyProjectRestApi.Controllers
         [Route("api/PostMessage")]
         public async Task<IHttpActionResult> PostMessage(MessageDTO msg)
         {
-            //TODO: save message to db
             ApplicationUser currentUser = db.Users.Find(GetCurrentUserId());
             ChatRoom chat = await db.ChatRooms.FindAsync(msg.ChatId);
             if (currentUser == null || chat == null)
@@ -341,7 +340,7 @@ namespace MyProjectRestApi.Controllers
 
         private int CheckIfUserBelongToChat(string currentUserId, int chatId)
         {
-            //if chatroomId is not null or 0 then currentUser belong to chat
+            //if chatroomId is not null or 0, then currentUser belong to chat
             int chatroomId = (from chat in db.ChatRooms
                               where (chat.ChatRoomId == chatId)
                               let usersInChat = chat.Users.Where(user => user.Id == currentUserId)
@@ -353,7 +352,7 @@ namespace MyProjectRestApi.Controllers
 
         private bool CheckIsUserAdminOfChat(string currentUserId, int chatId)
         {
-            //if chatroomId is null or 0 then user is not admin of this Chat
+            //if chatroomId is null or 0, then user is not admin of this Chat
             int chatroomId = (from chat in db.ChatRooms
                               where (chat.ChatRoomId == chatId && chat.ChatRoomAdminId == currentUserId)
                               select (chat.ChatRoomId)).FirstOrDefault();

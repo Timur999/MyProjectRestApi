@@ -1,10 +1,6 @@
 ﻿using Microsoft.AspNet.SignalR;
 using Microsoft.AspNet.SignalR.Hubs;
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Web;
 
 namespace MyProjectRestApi.Models
 {
@@ -22,7 +18,6 @@ namespace MyProjectRestApi.Models
             UserHandler.htConnectionClients[currentUserId] = Context.ConnectionId;
         }
 
-
         public void SendMessage(MessageDTO message)
         {
             
@@ -39,7 +34,6 @@ namespace MyProjectRestApi.Models
             }
 
             Clients.Caller.OnMessageSent(message);
-
         }
         //UserId, message.MessageText
         //Clients.All.OnMessageSent(message);
