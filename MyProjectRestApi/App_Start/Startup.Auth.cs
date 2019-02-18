@@ -69,27 +69,13 @@ namespace MyProjectRestApi
 
         public void ConfigureSignalR(IAppBuilder app)
         {
-            //app.MapSignalR();
-
-
-            HubConfiguration hubConfiguration = new HubConfiguration() { EnableDetailedErrors = true, EnableJSONP = true };
-            //app.MapHubs("/chat", hubConfiguration);
+            HubConfiguration hubConfiguration = new HubConfiguration() { EnableDetailedErrors = false, EnableJSONP = false };
 
             app.Map("/signalr", map =>
             {
                 map.UseCors(Microsoft.Owin.Cors.CorsOptions.AllowAll);
                 map.RunSignalR(hubConfiguration);
             });
-
-            
-
-
-
-
-
-
-
-
         }
     }
 }

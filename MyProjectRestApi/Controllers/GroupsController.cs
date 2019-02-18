@@ -14,6 +14,8 @@ using MyProjectRestApi.Models.DTO;
 using MyProjectRestApi.Models.Entity_Types;
 using Microsoft.AspNet.Identity.Owin;
 using System.Security.Claims;
+using System.Globalization;
+using MyProjectRestApi.Models.Helper;
 
 namespace MyProjectRestApi.Controllers
 {
@@ -25,13 +27,20 @@ namespace MyProjectRestApi.Controllers
         // GET: api/Groups
         public IQueryable<GroupDTO> GetGroups()
         {
-            return db.Groups
-                .Select(g => new GroupDTO()
-                {
-                    GroupsName = g.GroupsName,
-                    AdminGroupId = g.AdminGroupId,
-                    DateOfCreatedGroup = g.DateOfCreatedGroup
-                });
+            string currentUserId = GetCurrentUserId();
+            var ci = new CultureInfo("pl-PL");
+
+            return (from g in db.Groups
+                    let userInGroup = new GroupDTO()
+                    {
+                        Id = g.Id,
+                        GroupsName = g.GroupsName,
+                        AdminGroupId = g.AdminGroupId,
+                        DateOfCreatedGroup = g.DateOfCreatedGroup,
+                        IsAdmin = currentUserId == g.AdminGroupId,
+                        IsMember = g.Users.Where(u => u.Id == currentUserId).Select(u => u.Id).FirstOrDefault() != null
+                    }
+                    select userInGroup).AsQueryable();
         }
 
         // GET: api/Groups/5
@@ -44,7 +53,7 @@ namespace MyProjectRestApi.Controllers
                 return Content(HttpStatusCode.Forbidden, "You have not permission");
             }
             GroupDTO group = await db.Groups
-                .Where(g => g.Id == id)
+                .Where(g => g.Id == id && g.Id != 1)
                 .Select(g => new GroupDTO()
                 {
                     Id = g.Id,
@@ -80,7 +89,7 @@ namespace MyProjectRestApi.Controllers
             if (group.AdminGroupId == currentUserId)
             {
                 List<GroupPost> listPost = db.Blogs.Where(m => m.BLogId == id).SelectMany(m => m.GroupPost).ToList();
-                listPost.ForEach(p => db.GroupPosts.Remove(p));
+                listPost.ForEach(p => removePost(p));
                 Blog blog = db.Blogs.Find(id);
                 db.Blogs.Remove(blog);
                 db.Groups.Remove(group);
@@ -196,7 +205,7 @@ namespace MyProjectRestApi.Controllers
                 return BadRequest(ModelState);
             }
             List<ApplicationUser> users = new List<ApplicationUser>() { user };
-            Group group = new Group(groupDto.GroupsName, users);
+            Group group = new Group(groupDto.GroupsName, users, currentUserId);
             db.Groups.Add(group);
             await db.SaveChangesAsync();
 
@@ -213,7 +222,7 @@ namespace MyProjectRestApi.Controllers
             Blog blog = db.Blogs.Find(id);
             Group group = await db.Groups.FindAsync(id);
 
-            if (group.AdminGroupId == currentUserId)
+            if (group.AdminGroupId != currentUserId)
                 return Content(HttpStatusCode.Forbidden, "You have not permission");
 
             if (blog == null || group == null)
@@ -224,7 +233,7 @@ namespace MyProjectRestApi.Controllers
             //TODO: if current user is not admin group return NotFound()
             List<GroupPost> listPost = db.Blogs.Where(m => m.BLogId == blog.BLogId).SelectMany(m => m.GroupPost).ToList();
 
-            listPost.ForEach(p => db.GroupPosts.Remove(p));
+            listPost.ForEach(p => removePost(p));
             db.Blogs.Remove(blog);
             db.Groups.Remove(group);
             try
@@ -330,6 +339,19 @@ namespace MyProjectRestApi.Controllers
             var user = db.Users.FirstOrDefault(u => u.Id == identityClaim.Value);
 
             return user.Id;
+        }
+
+        private void removePost(GroupPost post)
+        {
+
+            if (post.Image != null)
+            {
+                 StorageAzureHelper.DeleteFileToStorage(post.Image.ImageName, StorageAzureHelper._storageConfig);
+            }
+            post.Blog = null;
+            post.User = null;
+            post.Image = null;
+            db.GroupPosts.Remove(post);
         }
     }
 }

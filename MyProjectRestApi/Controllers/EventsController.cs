@@ -14,15 +14,46 @@ using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Description;
+using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Auth;
+using Microsoft.WindowsAzure.Storage.Blob;
 using MyProjectRestApi.Models;
 using MyProjectRestApi.Models.DTO;
 using MyProjectRestApi.Models.Entity_Types;
+using MyProjectRestApi.Models.Helper;
 
 namespace MyProjectRestApi.Controllers
 {
     public class EventsController : ApiController
     {
         private ApplicationDbContext db = new ApplicationDbContext();
+        // Create storagecredentials object by reading the values from the configuration (appsettings.json)
+        private static StorageCredentials storageCredentials = new StorageCredentials(StorageAzureHelper._storageConfig.AccountName, StorageAzureHelper._storageConfig.AccountKey);
+
+        // Create cloudstorage account by passing the storagecredentials
+        private static CloudStorageAccount storageAccount = new CloudStorageAccount(storageCredentials, true);
+
+
+        [ResponseType(typeof(List<EventDTO>))]
+        public async Task<IHttpActionResult> GetEvents()
+        {
+            string currentUserId = GetCurrentUserId();
+            List<EventDTO> result = await (from e in db.Events
+                                           let eventDto = new EventDTO
+                                           {
+                                               Id = e.Id,
+                                               EventName = e.Name,
+                                               EventDate = e.EventDate,
+                                               Users = e.Users.Select(u => new ApplicationUserDTO() { UserName = u.UserName }).ToList(),
+                                               IsAdmin = currentUserId == e.AdminId,
+                                               IsSubscriber = (e.Users.Where(u => u.Id == currentUserId).FirstOrDefault() != null)
+                                           }
+                                           select (eventDto)).ToListAsync();
+
+            return Ok(result);
+        }
+
+
 
         // GET: api/Events
         [ResponseType(typeof(EventDTO))]
@@ -42,7 +73,7 @@ namespace MyProjectRestApi.Controllers
                  {
                      Id = eventDto.Id,
                      UserName = adminUserName,
-                     IsOwner = currentUserId == eventDto.AdminId,
+                     IsAdmin = currentUserId == eventDto.AdminId,
                      EventDate = eventDto.EventDate,
                      EventName = eventDto.Name,
                      Text = eventDto.Text,
@@ -59,8 +90,7 @@ namespace MyProjectRestApi.Controllers
             //Adding image to Event if exist
             foreach (var item in eventDTOs)
             {
-                item.Base64StringImage = !String.IsNullOrEmpty(item.ImagePath)
-                ? getBase64String(item.ImagePath) : null;
+                item.Base64StringImage = !String.IsNullOrEmpty(item.ImagePath) ? FromAzureToBase64(item.ImagePath, storageAccount) : null;
             }
 
             return Ok(eventDTOs);
@@ -156,10 +186,7 @@ namespace MyProjectRestApi.Controllers
                 {
                     try
                     {
-                        string filePath = @"D:\project folder\MyProjectRestApi\MyProjectRestApi\Image\";  //TRy directly add path from oldImage
-                        string fileName = oldImage.ImagePath;
-                        string fullPath = Path.Combine(filePath, fileName);
-                        File.Delete(oldImage.ImagePath);
+                        await StorageAzureHelper.DeleteFileToStorage(oldImage.ImageName, StorageAzureHelper._storageConfig);
                         db.EventImages.Remove(oldImage);
                         await db.SaveChangesAsync();
                     }
@@ -170,7 +197,7 @@ namespace MyProjectRestApi.Controllers
                 }
 
 
-                image = SaveImage(postedEventFile);
+                image = await saveFileToStorageAzure(postedEventFile);
                 editEvent.Image = image;
             }
 
@@ -198,7 +225,7 @@ namespace MyProjectRestApi.Controllers
             string Base64StringImage = "";
             try
             {
-                Base64StringImage = !String.IsNullOrEmpty(editEvent.Image.ImagePath) ? getBase64String(editEvent.Image.ImagePath) : null;
+                Base64StringImage = !String.IsNullOrEmpty(editEvent.Image.ImagePath) ? FromAzureToBase64(editEvent.Image.ImagePath, storageAccount) : null;
             }
             catch (Exception ex) { }
 
@@ -214,7 +241,7 @@ namespace MyProjectRestApi.Controllers
                 Base64StringImage = Base64StringImage,
                 Users = editEvent.Users.Select(user => new ApplicationUserDTO()
                 { Id = user.Id, UserName = user.UserName }).ToList(),
-                IsOwner = true
+                IsAdmin = true
             };
 
             return Ok(eventDto);
@@ -249,7 +276,7 @@ namespace MyProjectRestApi.Controllers
 
             if (postedEventFile != null)
             {
-                image = SaveImage(postedEventFile);
+                image = await saveFileToStorageAzure(postedEventFile);
             }
 
             Event objEvent = new Event()
@@ -284,12 +311,12 @@ namespace MyProjectRestApi.Controllers
                     AdminId = currentUserId,
                     EventDate = postedEventDate,
                     Text = postedEventText,
-                    IsOwner = true
+                    IsAdmin = true
                 };
             }
             else
             {
-                string Base64StringImage = getBase64String(objEvent.Image.ImagePath);
+                string Base64StringImage = FromAzureToBase64(objEvent.Image.ImagePath, storageAccount);
                 eventDto = new EventDTO()
                 {
                     Id = objEvent.Id,
@@ -300,7 +327,7 @@ namespace MyProjectRestApi.Controllers
                     Text = postedEventText,
                     ImageName = objEvent.Image.ImageName,
                     Base64StringImage = Base64StringImage,
-                    IsOwner = true
+                    IsAdmin = true
                 };
             }
 
@@ -323,7 +350,12 @@ namespace MyProjectRestApi.Controllers
             {
                 return Content(HttpStatusCode.Unauthorized, "An error occurred, please try again or contact the administrator.");
             }
-
+            EventImage img = await db.EventImages.FindAsync(id);
+            if (img != null)
+            {
+                await StorageAzureHelper.DeleteFileToStorage(img.ImageName, StorageAzureHelper._storageConfig);
+            }
+            @event.Image = null;
             @event.Users = null;
             db.Events.Remove(@event);
             await db.SaveChangesAsync();
@@ -346,32 +378,6 @@ namespace MyProjectRestApi.Controllers
             return db.Events.Count(e => e.Id == id) > 0;
         }
 
-        private EventImage SaveImage(HttpPostedFile postedFile)
-        {
-            string imageName = null;
-            //create custome filename
-            imageName = new string(Path.GetFileNameWithoutExtension(postedFile.FileName).Take(10).ToArray()).Replace(" ", "-");
-            imageName = imageName + DateTime.Now.ToString("yymmssfff") + Path.GetExtension(postedFile.FileName);
-            var filePath = HttpContext.Current.Server.MapPath("~/Image/" + imageName);
-            try
-            {
-                postedFile.SaveAs(filePath);
-                postedFile.InputStream.Flush();
-            }
-            catch (Exception ex) { }
-            finally
-            {
-                postedFile.InputStream.Close();
-            }
-            EventImage image = new EventImage()
-            {
-                ImageName = imageName,
-                ImagePath = filePath
-            };
-
-            return image;
-        }
-
         private string GetCurrentUserId()
         {
             var identity = User.Identity as ClaimsIdentity;
@@ -382,23 +388,97 @@ namespace MyProjectRestApi.Controllers
             return user.Id;
         }
 
-        private string getBase64String(string ImagePath)
+
+        private static string FromAzureToBase64(string azureUri, CloudStorageAccount StorageAccount)
         {
-            string base64String = "";
-
-            using (Image img = Image.FromFile(ImagePath))
-            {
-                using (MemoryStream m = new MemoryStream())
-                {
-                    img.Save(m, img.RawFormat);
-                    byte[] imageBytes = m.ToArray();
-
-                    // Convert byte[] to Base64 String
-                    base64String = Convert.ToBase64String(imageBytes);
-                }
-
-            }
-            return base64String;
+            Uri blobUri = new Uri(azureUri);
+            CloudBlockBlob blob = new CloudBlockBlob(blobUri, StorageAccount.Credentials);
+            blob.FetchAttributes();//Fetch blob's properties
+            byte[] arr = new byte[blob.Properties.Length];
+            blob.DownloadToByteArray(arr, 0);
+            var azureBase64 = Convert.ToBase64String(arr);
+            return azureBase64;
         }
+
+        private async Task<EventImage> saveFileToStorageAzure(HttpPostedFile postedFile)
+        {
+            string imageUrl = "";
+            string imageName = null;
+            EventImage image = null;
+            //create custome filename
+            imageName = new string(Path.GetFileNameWithoutExtension(postedFile.FileName).Take(10).ToArray()).Replace(" ", "-");
+            imageName = imageName + DateTime.Now.ToString("yymmssfff") + Path.GetExtension(postedFile.FileName);
+
+            try
+            {
+                if (postedFile != null)
+                {
+                    using (Stream stream = postedFile.InputStream)
+                    {
+                        imageUrl = await StorageAzureHelper.UploadFileToStorage(stream, imageName, StorageAzureHelper._storageConfig);
+                    }
+                    if (!string.IsNullOrEmpty(imageUrl))
+                    {
+                        image = new EventImage()
+                        {
+                            ImageName = imageName,
+                            ImagePath = imageUrl
+                        };
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+
+            return image;
+        }
+
+        //private string getBase64String(string ImagePath)
+        //{
+        //    string base64String = "";
+
+        //    using (Image img = Image.FromFile(ImagePath))
+        //    {
+        //        using (MemoryStream m = new MemoryStream())
+        //        {
+        //            img.Save(m, img.RawFormat);
+        //            byte[] imageBytes = m.ToArray();
+
+        //            // Convert byte[] to Base64 String
+        //            base64String = Convert.ToBase64String(imageBytes);
+        //        }
+
+        //    }
+        //    return base64String;
+        //}
+
+
+        //private EventImage SaveImage(HttpPostedFile postedFile)
+        //{
+        //    string imageName = null;
+        //    //create custome filename
+        //    imageName = new string(Path.GetFileNameWithoutExtension(postedFile.FileName).Take(10).ToArray()).Replace(" ", "-");
+        //    imageName = imageName + DateTime.Now.ToString("yymmssfff") + Path.GetExtension(postedFile.FileName);
+        //    var filePath = HttpContext.Current.Server.MapPath("~/Image/" + imageName);
+        //    try
+        //    {
+        //        postedFile.SaveAs(filePath);
+        //        postedFile.InputStream.Flush();
+        //    }
+        //    catch (Exception ex) { }
+        //    finally
+        //    {
+        //        postedFile.InputStream.Close();
+        //    }
+        //    EventImage image = new EventImage()
+        //    {
+        //        ImageName = imageName,
+        //        ImagePath = filePath
+        //    };
+
+        //    return image;
+        //}
     }
 }

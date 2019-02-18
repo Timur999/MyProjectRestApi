@@ -22,7 +22,8 @@ namespace MyProjectRestApi.Models.DTO
         public string ImagePath { get; set; }
         public string ImageName { get; set; }
         public string Base64StringImage { get; set; }
-        public bool IsOwner { get; set; }
+        public bool IsAdmin { get; set; }
+        public bool IsSubscriber { get; set; }
         public int ArrayLength { get; set; }
     }
 }
