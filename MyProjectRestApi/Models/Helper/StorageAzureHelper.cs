@@ -79,7 +79,7 @@ namespace MyProjectRestApi.Models.Helper
             CloudBlockBlob blockBlob = container.GetBlockBlobReference(fileName);
             try
             {
-                // Upload the file
+                // Delete the file
                 await blockBlob.DeleteAsync();
             }
             catch (Exception ex) { return false;  }
