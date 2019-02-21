@@ -33,8 +33,15 @@ namespace MyProjectRestApi.Providers
         public override async Task GrantResourceOwnerCredentials(OAuthGrantResourceOwnerCredentialsContext context)
         {
             var userManager = context.OwinContext.GetUserManager<ApplicationUserManager>();
+            ApplicationUser user = null;
+            try
+            {
+                 user = await userManager.FindByEmailAsync(context.UserName);
+            }catch(Exception ex) {
+                context.SetError("invalid_username", "The given user name has not existed");
+                return;
+            }
 
-            ApplicationUser user = await userManager.FindByEmailAsync(context.UserName);
             bool isCorrectPassword = await userManager.CheckPasswordAsync(user, context.Password);
 
             if (user == null || !isCorrectPassword)
