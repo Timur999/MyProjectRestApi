@@ -67,7 +67,6 @@ D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.SystemWeb.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Data.Edm.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Data.OData.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Owin.Cors.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Owin.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Owin.Host.SystemWeb.dll
@@ -87,7 +86,6 @@ D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Cors.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Helpers.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.Cors.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.OData.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.Owin.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.WebHost.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Mvc.dll
@@ -103,14 +101,12 @@ D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.AspNet.SignalR.SystemWeb.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Data.Edm.xml
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Data.OData.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Owin.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Microsoft.Owin.Cors.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Net.Http.Formatting.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Spatial.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.Cors.xml
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.OData.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\Newtonsoft.Json.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Helpers.xml
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\System.Web.Http.WebHost.xml
@@ -149,15 +145,6 @@ D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\ko\Microsoft.Data.Edm.re
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\ru\Microsoft.Data.Edm.resources.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\zh-Hans\Microsoft.Data.Edm.resources.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\zh-Hant\Microsoft.Data.Edm.resources.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\de\Microsoft.Data.OData.resources.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\es\Microsoft.Data.OData.resources.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\fr\Microsoft.Data.OData.resources.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\it\Microsoft.Data.OData.resources.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\ja\Microsoft.Data.OData.resources.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\ko\Microsoft.Data.OData.resources.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\ru\Microsoft.Data.OData.resources.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\zh-Hans\Microsoft.Data.OData.resources.dll
-D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\zh-Hant\Microsoft.Data.OData.resources.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\pl\System.Net.Http.Formatting.resources.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\de\System.Spatial.resources.dll
 D:\project folder\MyProjectRestApi\MyProjectRestApi\bin\es\System.Spatial.resources.dll
