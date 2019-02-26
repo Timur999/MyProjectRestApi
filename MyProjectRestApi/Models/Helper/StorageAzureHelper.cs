@@ -34,7 +34,7 @@ namespace MyProjectRestApi.Models.Helper
 
         public static async Task<string> UploadFileToStorage(Stream fileStream, string fileName, AzureStorageConfig _storageConfig)
         {
-            // Create storagecredentials object by reading the values from the configuration (appsettings.json)
+            // Create storagecredentials object by reading the values from the configuration (AzureStorageConfig class)
             StorageCredentials storageCredentials = new StorageCredentials(_storageConfig.AccountName, _storageConfig.AccountKey);
 
             // Create cloudstorage account by passing the storagecredentials
@@ -43,7 +43,7 @@ namespace MyProjectRestApi.Models.Helper
             // Create the blob client.
             CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
 
-            // Get reference to the blob container by passing the name by reading the value from the configuration (appsettings.json)
+            // Get reference to the blob container by passing the name by reading the value from the configuration (AzureStorageConfig class)
             CloudBlobContainer container = blobClient.GetContainerReference(_storageConfig.ImageContainer);
 
             // Get the reference to the block blob from the container

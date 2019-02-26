@@ -80,6 +80,7 @@ namespace MyProjectRestApi.Controllers
 
             return Ok(posts);
         }
+
         // GET: api/Posts/5/10
         [ResponseType(typeof(PostDTO))]
         //[Route("api/PostByGroup/{id:int}")]
@@ -95,7 +96,6 @@ namespace MyProjectRestApi.Controllers
             {
                 try
                 {
-
                     postsListLength = await (from post in db.GroupPosts
                                              where (post.Blog.BLogId == id)
                                              select new PostDTO()).CountAsync();
@@ -130,13 +130,12 @@ namespace MyProjectRestApi.Controllers
                 return Content(HttpStatusCode.NotFound, "there aren't any post in this group");
             }
 
-
             //Adding image to post if exist
             foreach (var item in posts)
             {
-                if (item.ImagePath == null)
+                if (item.ImageName == null)
                     continue;
-                string base64 = FromAzureToBase64(item.ImagePath, storageAccount);
+                string base64 = FromAzureToBase64(item.ImageName, storageAccount);
 
                 item.Base64StringImage = base64;
             }
@@ -147,7 +146,7 @@ namespace MyProjectRestApi.Controllers
         [Route("api/EditPost")]
         public async Task<IHttpActionResult> PutPost()
         {
-            //TODO: edit post with image
+            //TODO: edit post with image, Try to update img using blockBlob.UploadFromStreamAsync(fileStream), not removing old and adding new 22/02/2019
             PostImage image = null;
             var httpRequest = HttpContext.Current.Request;
 
@@ -196,7 +195,7 @@ namespace MyProjectRestApi.Controllers
             {
                 return Content(HttpStatusCode.InternalServerError, ex.Message);
             }
-  
+
             string Base64StringImage = !String.IsNullOrEmpty(post.Image.ImagePath) ? FromAzureToBase64(post.Image.ImagePath, storageAccount) : null;
 
             PostDTO postDTO = new PostDTO()
@@ -267,7 +266,6 @@ namespace MyProjectRestApi.Controllers
             }
             else
                 return Content(HttpStatusCode.Forbidden, "You have not permission");
-
         }
 
         [Route("api/PostComment")]
@@ -303,7 +301,6 @@ namespace MyProjectRestApi.Controllers
             }
             else
                 return Content(HttpStatusCode.Forbidden, "You have not permission");
-
         }
 
         [Route("api/PostImageToAzure")]
@@ -463,18 +460,45 @@ namespace MyProjectRestApi.Controllers
         }
 
 
-        private static string FromAzureToBase64(string azureUri, CloudStorageAccount StorageAccount)
+        private static string FromAzureToBase64(string imagesName, CloudStorageAccount StorageAccount)
         {
-            Uri blobUri = new Uri(azureUri);
-            CloudBlockBlob blob = new CloudBlockBlob(blobUri, StorageAccount.Credentials);
-            blob.FetchAttributes();//Fetch blob's properties
-            byte[] arr = new byte[blob.Properties.Length];
-            blob.DownloadToByteArray(arr, 0);
-            var azureBase64 = Convert.ToBase64String(arr);
+            var azureBase64 = "";
+            CloudBlobClient blobClient = StorageAccount.CreateCloudBlobClient();
+            CloudBlobContainer container = blobClient.GetContainerReference("images");
+            if (container.GetBlobReference(imagesName).Exists())
+            {
+                CloudBlockBlob blob = container.GetBlockBlobReference(imagesName);
+                try
+                {
+                    blob.FetchAttributes();//Fetch blob's properties
+                }
+                catch (Exception ex) { }
+                byte[] arr = new byte[blob.Properties.Length];
+                blob.DownloadToByteArray(arr, 0);
+                azureBase64 = Convert.ToBase64String(arr);
+            }
+
             return azureBase64;
         }
 
 
+
+        //private static string FromAzureToBase64(string azureUri, CloudStorageAccount StorageAccount)
+        //{
+        //    Uri blobUri = new Uri(azureUri);
+        //    var azureBase64 = "";
+        //    CloudBlockBlob blob = new CloudBlockBlob(blobUri, StorageAccount.Credentials);
+        //    try
+        //    {
+        //        blob.FetchAttributes();//Fetch blob's properties
+        //    }
+        //    catch (Exception ex) { }
+        //    byte[] arr = new byte[blob.Properties.Length];
+        //    blob.DownloadToByteArray(arr, 0);
+        //    azureBase64 = Convert.ToBase64String(arr);
+
+        //    return azureBase64;
+        //}
 
         // PUT: api/Posts/5
         //[ResponseType(typeof(void))]
